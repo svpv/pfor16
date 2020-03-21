@@ -20,13 +20,17 @@ static inline bool patch256(const uint8_t *s, intptr_t n, uint16_t *v, int m)
 	i1 = s[2];
 	x1 = s[3];
 	s += 4;
-	v[i0] |= x0 << m;
-	v[i1] |= x1 << m;
+	if (unlikely(i0 == i1))
+	    v[i0] |= x0 << m | x1 << (m + 8);
+	else {
+	    v[i0] += x0 << m;
+	    v[i1] += x1 << m;
+	}
     } while (s < last);
     if (s == last) {
 last:	i0 = s[0];
 	x0 = s[1];
-	v[i0] |= x0 << m;
+	v[i0] += x0 << m;
     }
     return true;
 }
