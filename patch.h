@@ -3,9 +3,10 @@
 
 #define unlikely(x) __builtin_expect(x, 0)
 
-static inline bool patch256(const uint8_t *s, uint16_t *v, int m)
+// Patch a block of 256 m-bit integers by applying n corrections from s,
+// in the form of <index, extra high bits> tuples.
+static inline bool patch256(const uint8_t *s, intptr_t n, uint16_t *v, int m)
 {
-    intptr_t n = *s++;
     if (--n <= 0) {
 	if (unlikely(n < 0))
 	    return false;
