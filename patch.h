@@ -3,6 +3,16 @@
 
 #define unlikely(x) __builtin_expect(x, 0)
 
+static inline unsigned load16le(const void *p)
+{
+    uint16_t x;
+    memcpy(&x, p, 2);
+#if defined(__GNUC__) && __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
+    x = __builtin_bswap16(x);
+#endif
+    return x;
+}
+
 // Patch a block of 256 m-bit integers by applying (n0 + 1) corrections from s,
 // in the form of <index, extra high bits> tuples.
 static inline void patch256(const uint8_t *s, unsigned n0, uint16_t *v, int m, bool fuse)
@@ -26,13 +36,8 @@ static inline void patch256(const uint8_t *s, unsigned n0, uint16_t *v, int m, b
 	    i0 = s[0];
 	    i1 = s[1];
 	    if (unlikely(i0 == i1)) {
-		uint16_t x;
-		memcpy(&x, s + 2, 2);
+		v[i0] = load16le(s + 2);
 		s += 4;
-#if defined(__GNUC__) && __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
-		x = __builtin_bswap16(x);
-#endif
-		v[i0] = x;
 	    }
 	    else {
 		x0 = s[2];
