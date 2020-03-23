@@ -3,16 +3,13 @@
 
 #define unlikely(x) __builtin_expect(x, 0)
 
-// Patch a block of 256 m-bit integers by applying n corrections from s,
+// Patch a block of 256 m-bit integers by applying (n0 + 1) corrections from s,
 // in the form of <index, extra high bits> tuples.
-static inline bool patch256(const uint8_t *s, intptr_t n, uint16_t *v, int m, bool fuse)
+static inline void patch256(const uint8_t *s, unsigned n0, uint16_t *v, int m, bool fuse)
 {
-    if (--n <= 0) {
-	if (unlikely(n < 0))
-	    return false;
+    if (unlikely(n0 == 0))
 	goto last;
-    }
-    const uint8_t *last = s + 2 * n;
+    const uint8_t *last = s + 2 * n0;
     unsigned i0, x0, i1, x1;
     if (!fuse)
 	do {
@@ -50,5 +47,4 @@ last:	x0 = s[0];
 	i0 = s[1];
 	v[i0] += x0 << m;
     }
-    return true;
 }
