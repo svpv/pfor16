@@ -55,10 +55,10 @@ last:	*v += v1;
 	x0 = _mm_add_epi16(x0, _mm_slli_si128(x0, 8));			\
 	x1 = _mm_add_epi16(x1, _mm_slli_si128(x1, 8));			\
 	xv = _mm_add_epi16(xv, x0);					\
-	_mm_store_si128((void *)(v + 0), xv);				\
+	_mm_storeu_si128((void *)(v + 0), xv);				\
 	xv = _mm_shuffle_epi8(xv, _mm_set1_epi16(0x0f0e));		\
 	xv = _mm_add_epi16(xv, x1);					\
-	_mm_store_si128((void *)(v + 8), xv);				\
+	_mm_storeu_si128((void *)(v + 8), xv);				\
     } while (0)
 
 #define YMM2ITER(v, xv)							\
@@ -73,16 +73,16 @@ last:	*v += v1;
 	y0 = _mm256_add_epi16(y0, _mm256_slli_si256(y0, 8));		\
 	y1 = _mm256_add_epi16(y1, _mm256_slli_si256(y1, 8));		\
 	xv = _mm_add_epi16(xv, _mm256_extracti128_si256(y0, 0));	\
-	_mm_store_si128((void *)(v + 0), xv);				\
+	_mm_storeu_si128((void *)(v + 0), xv);				\
 	xv = _mm_shuffle_epi8(xv, _mm_set1_epi16(0x0f0e));		\
 	xv = _mm_add_epi16(xv, _mm256_extracti128_si256(y0, 1));	\
-	_mm_store_si128((void *)(v + 8), xv);				\
+	_mm_storeu_si128((void *)(v + 8), xv);				\
 	xv = _mm_shuffle_epi8(xv, _mm_set1_epi16(0x0f0e));		\
 	xv = _mm_add_epi16(xv, _mm256_extracti128_si256(y1, 0));	\
-	_mm_store_si128((void *)(v + 16), xv);				\
+	_mm_storeu_si128((void *)(v + 16), xv);				\
 	xv = _mm_shuffle_epi8(xv, _mm_set1_epi16(0x0f0e));		\
 	xv = _mm_add_epi16(xv, _mm256_extracti128_si256(y1, 1));	\
-	_mm_store_si128((void *)(v + 24), xv);				\
+	_mm_storeu_si128((void *)(v + 24), xv);				\
     } while (0)
 
 #ifndef __SSSE3__
