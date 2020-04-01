@@ -374,15 +374,14 @@ typedef const __m256i B16x16m;
 #define B16x16load(p, i) _mm256_loadu_si256(Baddr256(p, i))
 #define B16x16store(p, i, x) _mm256_storeu_si256(Baddr256(p, i), x)
 
-static inline __m128i Bpackwb256(__m256i x)
+#define B16x16halfload(p, i) _mm256_cvtepu8_epi16(_mm_loadu_si128(Baddr256(p, i)))
+
+static inline void B16x16halfstore(const void *p, size_t i, __m256i x)
 {
-    return _mm256_packus_epi16(x, x),
+    x = _mm256_packus_epi16(x, x);
+    _mm_storel_epi64(Baddr64(p, 4 * i + 0), _mm256_castsi256_si128(x));
+    _mm_storel_epi64(Baddr64(p, 4 * i + 1), _mm256_extractf128_si256(x, 1));
 }
-
-#define Bunpackbw256(x) _mm256_cvtepu8_epi16(x)
-
-#define B16x16halfload(p, i, j) Bunpackbw256(_mm_loadu_si128(Baddr256(p, i)))
-#define B16x16halfstore(p, i, x) _mm_storeu_si128(Baddr256(p, i), Bpackwb256(x))
 
 #define B16x16shl(x, k) _mm256_slli_epi16(x, k)
 #define B16x16shr(x, k) _mm256_srli_epi16(x, k)
