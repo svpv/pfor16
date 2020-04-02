@@ -405,6 +405,75 @@
 	B##store(p, 6, x);						\
     } while (0)
 
+#define BitPack16_8x2(B, v, p)						\
+    do {								\
+	B##t x;								\
+	B##m m = B##mask(8);						\
+	x = B##and(B##load(v, 0), m);					\
+	x = B##or(x, B##shl(B##clean(B##load(v, 1), m), 8));		\
+	B##store(p, 0, x);						\
+    } while (0)
+
+#define BitPack16_8x4(B, v, p)						\
+    do {								\
+	B##t x, y;							\
+	B##m m = B##mask(8);						\
+	x = B##and(B##load(v, 0), m);					\
+	x = B##or(x, B##shl(B##clean(B##load(v, 1), m), 8));		\
+	B##store(p, 0, x);						\
+	y = B##and(B##load(v, 2), m);					\
+	y = B##or(y, B##shl(B##clean(B##load(v, 3), m), 8));		\
+	B##store(p, 1, y);						\
+    } while (0)
+
+#define BitPack16_8x8(B, v, p)						\
+    do {								\
+	B##t x, y;							\
+	B##m m = B##mask(8);						\
+	x = B##and(B##load(v, 0), m);					\
+	x = B##or(x, B##shl(B##clean(B##load(v, 1), m), 8));		\
+	B##store(p, 0, x);						\
+	y = B##and(B##load(v, 2), m);					\
+	y = B##or(y, B##shl(B##clean(B##load(v, 3), m), 8));		\
+	B##store(p, 1, y);						\
+	x = B##and(B##load(v, 4), m);					\
+	x = B##or(x, B##shl(B##clean(B##load(v, 5), m), 8));		\
+	B##store(p, 2, x);						\
+	y = B##and(B##load(v, 6), m);					\
+	y = B##or(y, B##shl(B##clean(B##load(v, 7), m), 8));		\
+	B##store(p, 3, y);						\
+    } while (0)
+
+#define BitPack16_8x16(B, v, p)						\
+    do {								\
+	B##t x, y;							\
+	B##m m = B##mask(8);						\
+	x = B##and(B##load(v, 0), m);					\
+	x = B##or(x, B##shl(B##clean(B##load(v, 1), m), 8));		\
+	B##store(p, 0, x);						\
+	y = B##and(B##load(v, 2), m);					\
+	y = B##or(y, B##shl(B##clean(B##load(v, 3), m), 8));		\
+	B##store(p, 1, y);						\
+	x = B##and(B##load(v, 4), m);					\
+	x = B##or(x, B##shl(B##clean(B##load(v, 5), m), 8));		\
+	B##store(p, 2, x);						\
+	y = B##and(B##load(v, 6), m);					\
+	y = B##or(y, B##shl(B##clean(B##load(v, 7), m), 8));		\
+	B##store(p, 3, y);						\
+	x = B##and(B##load(v, 8), m);					\
+	x = B##or(x, B##shl(B##clean(B##load(v, 9), m), 8));		\
+	B##store(p, 4, x);						\
+	y = B##and(B##load(v, 10), m);					\
+	y = B##or(y, B##shl(B##clean(B##load(v, 11), m), 8));		\
+	B##store(p, 5, y);						\
+	x = B##and(B##load(v, 12), m);					\
+	x = B##or(x, B##shl(B##clean(B##load(v, 13), m), 8));		\
+	B##store(p, 6, x);						\
+	y = B##and(B##load(v, 14), m);					\
+	y = B##or(y, B##shl(B##clean(B##load(v, 15), m), 8));		\
+	B##store(p, 7, y);						\
+    } while (0)
+
 #define BitPack16_func(m, n, X, N)					\
     static inline void bitpack16_##m##x##N(const uint16_t *v, void *p)	\
     {									\
