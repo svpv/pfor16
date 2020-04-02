@@ -291,6 +291,20 @@
 	B##store(v, 15, B##clean(B##shr(y, 10), m));			\
     } while (0)
 
+#define BitUnpack16_7x4(B, v, p)					\
+    do {								\
+	B##t x, y;							\
+	B##m m = B##mask(7);						\
+	x = B##load(p, 0);						\
+	B##store(v, 0, B##and(x, m));					\
+	B##store(v, 1, B##and(B##shr(x, 7), m));			\
+	y = B##halfload(p, 1);						\
+	B##store(v, 2, B##combine(x, y, 2, 5, m));			\
+	x = B##quarterjload(p, 1, 2);					\
+	y = B##clean(B##shr(y, 5), m);					\
+	B##store(v, 3, B##or(y, B##shl(x, 3)));				\
+    } while (0)
+
 #define BitUnpack16_7x8(B, v, p)					\
     do {								\
 	B##t x, y;							\

@@ -325,6 +325,21 @@
 	B##store(p, 5, y);						\
     } while (0)
 
+#define BitPack16_7x4(B, v, p)						\
+    do {								\
+	B##t x, y;							\
+	B##m m = B##mask(7);						\
+	x = B##and(B##load(v, 0), m);					\
+	x = B##or(x, B##shl(B##and(B##load(v, 1), m), 7));		\
+	y = B##load(v, 2);						\
+	x = B##or(x, B##shl(B##clean(y, B##mask(2)), 14));		\
+	B##store(p, 0, x);						\
+	y = B##extract(y, 2, 5, m);					\
+	y = B##or(y, B##shl(B##and(B##load(v, 3), m), 5));		\
+	B##halfstore(p, 1, B##and(y, B##mask(8)));			\
+	B##quarterjstore(p, 1, 2, B##clean(B##shr(y, 8), m));		\
+    } while (0)
+
 #define BitPack16_7x8(B, v, p)						\
     do {								\
 	B##t x, y;							\
