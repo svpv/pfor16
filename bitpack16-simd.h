@@ -74,10 +74,10 @@ typedef const uint32_t B16x2m;
 static inline uint32_t B16x2halfjload(const void *p, size_t i, size_t j)
 {
     p = Baddr16(p, 2 * i + j);
-    return *Baddr8(p, 0) | *Baddr8(p, 1) << 8;
+    return *Baddr8(p, 0) | *Baddr8(p, 1) << 16;
 }
 
-static inline void B16x2halfjsotre(const void *p, size_t i, size_t j, uint32_t x)
+static inline void B16x2halfjstore(const void *p, size_t i, size_t j, uint32_t x)
 {
     x |= x >> 8;
     Bstore16le(Baddr16(p, 2 * i + j), x);
