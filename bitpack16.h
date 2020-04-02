@@ -22,6 +22,53 @@
 #include <assert.h>
 #include "bitpack16-simd.h"
 
+#define BitPack16_3x8(B, v, p)						\
+    do {								\
+	B##t x, y;							\
+	B##m m = B##mask(3);						\
+	x = B##and(B##load(v, 0), m);					\
+	x = B##or(x, B##shl(B##and(B##load(v, 1), m), 3));		\
+	x = B##or(x, B##shl(B##and(B##load(v, 2), m), 6));		\
+	x = B##or(x, B##shl(B##and(B##load(v, 3), m), 9));		\
+	x = B##or(x, B##shl(B##and(B##load(v, 4), m), 12));		\
+	y = B##load(v, 5);						\
+	x = B##or(x, B##shl(B##clean(y, B##mask(1)), 15));		\
+	B##store(p, 0, x);						\
+	y = B##extract(y, 1, 2, m);					\
+	y = B##or(y, B##shl(B##and(B##load(v, 6), m), 2));		\
+	y = B##or(y, B##shl(B##and(B##load(v, 7), m), 5));		\
+	B##halfstore(p, 1, y);						\
+    } while (0)
+
+#define BitPack16_3x16(B, v, p)						\
+    do {								\
+	B##t x, y;							\
+	B##m m = B##mask(3);						\
+	x = B##and(B##load(v, 0), m);					\
+	x = B##or(x, B##shl(B##and(B##load(v, 1), m), 3));		\
+	x = B##or(x, B##shl(B##and(B##load(v, 2), m), 6));		\
+	x = B##or(x, B##shl(B##and(B##load(v, 3), m), 9));		\
+	x = B##or(x, B##shl(B##and(B##load(v, 4), m), 12));		\
+	y = B##load(v, 5);						\
+	x = B##or(x, B##shl(B##clean(y, B##mask(1)), 15));		\
+	B##store(p, 0, x);						\
+	y = B##extract(y, 1, 2, m);					\
+	y = B##or(y, B##shl(B##and(B##load(v, 6), m), 2));		\
+	y = B##or(y, B##shl(B##and(B##load(v, 7), m), 5));		\
+	y = B##or(y, B##shl(B##and(B##load(v, 8), m), 8));		\
+	y = B##or(y, B##shl(B##and(B##load(v, 9), m), 11));		\
+	x = B##load(v, 10);						\
+	y = B##or(y, B##shl(B##clean(x, B##mask(2)), 14));		\
+	B##store(p, 1, y);						\
+	x = B##extract(x, 2, 1, m);					\
+	x = B##or(x, B##shl(B##and(B##load(v, 11), m), 1));		\
+	x = B##or(x, B##shl(B##and(B##load(v, 12), m), 4));		\
+	x = B##or(x, B##shl(B##and(B##load(v, 13), m), 7));		\
+	x = B##or(x, B##shl(B##and(B##load(v, 14), m), 10));		\
+	x = B##or(x, B##shl(B##clean(B##load(v, 15), m), 13));		\
+	B##store(p, 2, x);						\
+    } while (0)
+
 #define BitPack16_4x4(B, v, p)						\
     do {								\
 	B##t x;								\
