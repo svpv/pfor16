@@ -21,6 +21,59 @@
 #pragma once
 #include "bitpack16-simd.h"
 
+#define BitUnpack16_4x4(B, v, p)					\
+    do {								\
+	B##t x;								\
+	B##m m = B##mask(4);						\
+	x = B##load(p, 0);						\
+	B##store(v, 0, B##and(x, m));					\
+	B##store(v, 1, B##and(B##shr(x, 4), m));			\
+	B##store(v, 2, B##and(B##shr(x, 8), m));			\
+	B##store(v, 3, B##clean(B##shr(x, 12), m));			\
+    } while (0)
+
+#define BitUnpack16_4x8(B, v, p)					\
+    do {								\
+	B##t x, y;							\
+	B##m m = B##mask(4);						\
+	x = B##load(p, 0);						\
+	B##store(v, 0, B##and(x, m));					\
+	B##store(v, 1, B##and(B##shr(x, 4), m));			\
+	B##store(v, 2, B##and(B##shr(x, 8), m));			\
+	B##store(v, 3, B##clean(B##shr(x, 12), m));			\
+	y = B##load(p, 1);						\
+	B##store(v, 4, B##and(y, m));					\
+	B##store(v, 5, B##and(B##shr(y, 4), m));			\
+	B##store(v, 6, B##and(B##shr(y, 8), m));			\
+	B##store(v, 7, B##clean(B##shr(y, 12), m));			\
+    } while (0)
+
+#define BitUnpack16_4x16(B, v, p)					\
+    do {								\
+	B##t x, y;							\
+	B##m m = B##mask(4);						\
+	x = B##load(p, 0);						\
+	B##store(v, 0, B##and(x, m));					\
+	B##store(v, 1, B##and(B##shr(x, 4), m));			\
+	B##store(v, 2, B##and(B##shr(x, 8), m));			\
+	B##store(v, 3, B##clean(B##shr(x, 12), m));			\
+	y = B##load(p, 1);						\
+	B##store(v, 4, B##and(y, m));					\
+	B##store(v, 5, B##and(B##shr(y, 4), m));			\
+	B##store(v, 6, B##and(B##shr(y, 8), m));			\
+	B##store(v, 7, B##clean(B##shr(y, 12), m));			\
+	x = B##load(p, 2);						\
+	B##store(v, 8, B##and(x, m));					\
+	B##store(v, 9, B##and(B##shr(x, 4), m));			\
+	B##store(v, 10, B##and(B##shr(x, 8), m));			\
+	B##store(v, 11, B##clean(B##shr(x, 12), m));			\
+	y = B##load(p, 3);						\
+	B##store(v, 12, B##and(y, m));					\
+	B##store(v, 13, B##and(B##shr(y, 4), m));			\
+	B##store(v, 14, B##and(B##shr(y, 8), m));			\
+	B##store(v, 15, B##clean(B##shr(y, 12), m));			\
+    } while (0)
+
 #define BitUnpack16_5x4(B, v, p)					\
     do {								\
 	B##t x, y;							\

@@ -22,6 +22,59 @@
 #include <assert.h>
 #include "bitpack16-simd.h"
 
+#define BitPack16_4x4(B, v, p)						\
+    do {								\
+	B##t x;								\
+	B##m m = B##mask(4);						\
+	x = B##and(B##load(v, 0), m);					\
+	x = B##or(x, B##shl(B##and(B##load(v, 1), m), 4));		\
+	x = B##or(x, B##shl(B##and(B##load(v, 2), m), 8));		\
+	x = B##or(x, B##shl(B##clean(B##load(v, 3), m), 12));		\
+	B##store(p, 0, x);						\
+    } while (0)
+
+#define BitPack16_4x8(B, v, p)						\
+    do {								\
+	B##t x, y;							\
+	B##m m = B##mask(4);						\
+	x = B##and(B##load(v, 0), m);					\
+	x = B##or(x, B##shl(B##and(B##load(v, 1), m), 4));		\
+	x = B##or(x, B##shl(B##and(B##load(v, 2), m), 8));		\
+	x = B##or(x, B##shl(B##clean(B##load(v, 3), m), 12));		\
+	B##store(p, 0, x);						\
+	y = B##and(B##load(v, 4), m);					\
+	y = B##or(y, B##shl(B##and(B##load(v, 5), m), 4));		\
+	y = B##or(y, B##shl(B##and(B##load(v, 6), m), 8));		\
+	y = B##or(y, B##shl(B##clean(B##load(v, 7), m), 12));		\
+	B##store(p, 1, y);						\
+    } while (0)
+
+#define BitPack16_4x16(B, v, p)						\
+    do {								\
+	B##t x, y;							\
+	B##m m = B##mask(4);						\
+	x = B##and(B##load(v, 0), m);					\
+	x = B##or(x, B##shl(B##and(B##load(v, 1), m), 4));		\
+	x = B##or(x, B##shl(B##and(B##load(v, 2), m), 8));		\
+	x = B##or(x, B##shl(B##clean(B##load(v, 3), m), 12));		\
+	B##store(p, 0, x);						\
+	y = B##and(B##load(v, 4), m);					\
+	y = B##or(y, B##shl(B##and(B##load(v, 5), m), 4));		\
+	y = B##or(y, B##shl(B##and(B##load(v, 6), m), 8));		\
+	y = B##or(y, B##shl(B##clean(B##load(v, 7), m), 12));		\
+	B##store(p, 1, y);						\
+	x = B##and(B##load(v, 8), m);					\
+	x = B##or(x, B##shl(B##and(B##load(v, 9), m), 4));		\
+	x = B##or(x, B##shl(B##and(B##load(v, 10), m), 8));		\
+	x = B##or(x, B##shl(B##clean(B##load(v, 11), m), 12));		\
+	B##store(p, 2, x);						\
+	y = B##and(B##load(v, 12), m);					\
+	y = B##or(y, B##shl(B##and(B##load(v, 13), m), 4));		\
+	y = B##or(y, B##shl(B##and(B##load(v, 14), m), 8));		\
+	y = B##or(y, B##shl(B##clean(B##load(v, 15), m), 12));		\
+	B##store(p, 3, y);						\
+    } while (0)
+
 #define BitPack16_5x4(B, v, p)						\
     do {								\
 	B##t x, y;							\
