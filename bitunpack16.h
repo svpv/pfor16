@@ -21,6 +21,68 @@
 #pragma once
 #include "bitpack16-simd.h"
 
+#define BitUnpack16_1x16(B, v, p)					\
+    do {								\
+	B##t x;								\
+	B##m m = B##mask(1);						\
+	x = B##load(p, 0);						\
+	B##store(v, 0, B##and(x, m));					\
+	B##store(v, 1, B##and(B##shr(x, 1), m));			\
+	B##store(v, 2, B##and(B##shr(x, 2), m));			\
+	B##store(v, 3, B##and(B##shr(x, 3), m));			\
+	B##store(v, 4, B##and(B##shr(x, 4), m));			\
+	B##store(v, 5, B##and(B##shr(x, 5), m));			\
+	B##store(v, 6, B##and(B##shr(x, 6), m));			\
+	B##store(v, 7, B##and(B##shr(x, 7), m));			\
+	B##store(v, 8, B##and(B##shr(x, 8), m));			\
+	B##store(v, 9, B##and(B##shr(x, 9), m));			\
+	B##store(v, 10, B##and(B##shr(x, 10), m));			\
+	B##store(v, 11, B##and(B##shr(x, 11), m));			\
+	B##store(v, 12, B##and(B##shr(x, 12), m));			\
+	B##store(v, 13, B##and(B##shr(x, 13), m));			\
+	B##store(v, 14, B##and(B##shr(x, 14), m));			\
+	B##store(v, 15, B##clean(B##shr(x, 15), m));			\
+    } while (0)
+
+#define BitUnpack16_2x8(B, v, p)					\
+    do {								\
+	B##t x;								\
+	B##m m = B##mask(2);						\
+	x = B##load(p, 0);						\
+	B##store(v, 0, B##and(x, m));					\
+	B##store(v, 1, B##and(B##shr(x, 2), m));			\
+	B##store(v, 2, B##and(B##shr(x, 4), m));			\
+	B##store(v, 3, B##and(B##shr(x, 6), m));			\
+	B##store(v, 4, B##and(B##shr(x, 8), m));			\
+	B##store(v, 5, B##and(B##shr(x, 10), m));			\
+	B##store(v, 6, B##and(B##shr(x, 12), m));			\
+	B##store(v, 7, B##clean(B##shr(x, 14), m));			\
+    } while (0)
+
+#define BitUnpack16_2x16(B, v, p)					\
+    do {								\
+	B##t x, y;							\
+	B##m m = B##mask(2);						\
+	x = B##load(p, 0);						\
+	B##store(v, 0, B##and(x, m));					\
+	B##store(v, 1, B##and(B##shr(x, 2), m));			\
+	B##store(v, 2, B##and(B##shr(x, 4), m));			\
+	B##store(v, 3, B##and(B##shr(x, 6), m));			\
+	B##store(v, 4, B##and(B##shr(x, 8), m));			\
+	B##store(v, 5, B##and(B##shr(x, 10), m));			\
+	B##store(v, 6, B##and(B##shr(x, 12), m));			\
+	B##store(v, 7, B##clean(B##shr(x, 14), m));			\
+	y = B##load(p, 1);						\
+	B##store(v, 8, B##and(y, m));					\
+	B##store(v, 9, B##and(B##shr(y, 2), m));			\
+	B##store(v, 10, B##and(B##shr(y, 4), m));			\
+	B##store(v, 11, B##and(B##shr(y, 6), m));			\
+	B##store(v, 12, B##and(B##shr(y, 8), m));			\
+	B##store(v, 13, B##and(B##shr(y, 10), m));			\
+	B##store(v, 14, B##and(B##shr(y, 12), m));			\
+	B##store(v, 15, B##clean(B##shr(y, 14), m));			\
+    } while (0)
+
 #define BitUnpack16_3x8(B, v, p)					\
     do {								\
 	B##t x, y;							\
