@@ -289,6 +289,21 @@ static inline __m128i Bpackwb(__m128i x)
 #define B16x8halfjload(p, i, j) Bunpackbw(_mm_loadl_epi64(Baddr64(p, 2*(i)+(j))))
 #define B16x8halfjstore(p, i, j, x) _mm_storel_epi64(Baddr64(p, 2*(i)+(j)), Bpackwb(x))
 
+static inline B16x8t B16x8quarterjload(const void *p, size_t i, size_t j)
+{
+    __m128i x = _mm_cvtsi32_si128(Bload32le(Baddr32(p, 4 * i + j)));
+    x = _mm_or_si128(x, _mm_slli_epi64(x, 28));
+    x = _mm_or_si128(x, _mm_slli_si128(x, 7));
+    return _mm_and_si128(x, _mm_set1_epi16(0x000f));
+}
+
+static inline void B16x8quarterjstore(void *p, size_t i, size_t j, B16x8t x)
+{
+    x = _mm_or_si128(x, _mm_srli_si128(x, 7));
+    x = _mm_or_si128(x, _mm_srli_epi64(x, 28));
+    return Bstore32le(Baddr32(p, 4 * i + j), _mm_cvtsi128_si32(x));
+}
+
 #define B16x8shl(x, k) _mm_slli_epi16(x, k)
 #define B16x8shr(x, k) _mm_srli_epi16(x, k)
 #define B16x8and(x, m) _mm_and_si128(x, m)
@@ -326,6 +341,34 @@ static inline void B16x8halfjstore(const void *p, size_t i, size_t j, B16x8t x)
 {
     B16x4halfxstore(p, 2 * i + j, 0, x.lo);
     B16x4halfxstore(p, 2 * i + j, 1, x.hi);
+}
+
+static inline B16x8t B16x8quarterjload(const void *p, size_t i, size_t j)
+{
+#ifdef B16x4load
+    uint64_t y = Bload32le(Baddr32(p, 4 * i + j));
+    uint64_t m = 0x000f000f000f000f;
+    y |= y << 28;
+    B16x8t x = { y & m, (y >> 8) & m };
+#else
+    uint32_t y = Bload32le(Baddr32(p, 4 * i + j));
+    uint32_t m = 0x000f000f;
+    B16x8t x = { { (y >> 0) & m, (y >>  4) & m },
+		 { (y >> 8) & m, (y >> 12) & m } };
+#endif
+    return x;
+}
+
+static inline void B16x8quarterjstore(void *p, size_t i, size_t j, B16x8t x)
+{
+#ifdef B16x4load
+    uint64_t y = x.lo | x.hi << 8;
+    y |= y >> 28;
+#else
+    uint32_t y = x.lo.lo << 0 | x.lo.hi << 4
+	       | x.hi.lo << 8 | x.hi.hi << 12;
+#endif
+    Bstore32le(Baddr32(p, 4 * i + j), y);
 }
 
 static inline B16x8t B16x8shl(B16x8t x, int k)

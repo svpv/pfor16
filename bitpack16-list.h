@@ -21,6 +21,6 @@
 BitPack16_func(5, 16, 16, 256)
 BitPack16_func(5,  8, 16, 128)
 BitPack16_func(5,  8,  8,  64)
-BitPack16_func(5,  8,  4,  32)
+BitPack16_func(5,  4,  8,  32)
 BitPack16_func(5,  4,  4,  16)
 BitPack16_func(5,  4,  2,   8)
