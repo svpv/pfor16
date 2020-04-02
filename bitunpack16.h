@@ -96,7 +96,7 @@
 	y = B##halfload(p, 1);						\
 	B##store(v, 5, B##combine(x, y, 1, 2, m));			\
 	B##store(v, 6, B##and(B##shr(y, 2), m));			\
-	B##store(v, 7, B##and(B##shr(y, 5), m));			\
+	B##store(v, 7, B##clean(B##shr(y, 5), m));			\
     } while (0)
 
 #define BitUnpack16_3x16(B, v, p)					\
@@ -204,7 +204,7 @@
 	B##store(v, 5, B##and(B##shr(y, 9), m));			\
 	x = B##halfload(p, 2);						\
 	B##store(v, 6, B##combine(y, x, 2, 3, m));			\
-	B##store(v, 7, B##and(B##shr(x, 3), m));			\
+	B##store(v, 7, B##clean(B##shr(x, 3), m));			\
     } while (0)
 
 #define BitUnpack16_5x16(B, v, p)					\
@@ -243,7 +243,7 @@
 	B##store(v, 1, B##and(B##shr(x, 6), m));			\
 	y = B##halfload(p, 1);						\
 	B##store(v, 2, B##combine(x, y, 4, 2, m));			\
-	B##store(v, 3, B##and(B##shr(y, 2), m));			\
+	B##store(v, 3, B##clean(B##shr(y, 2), m));			\
     } while (0)
 
 #define BitUnpack16_6x8(B, v, p)					\
