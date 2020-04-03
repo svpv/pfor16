@@ -304,6 +304,23 @@ static inline void B16x8quarterjstore(void *p, size_t i, size_t j, B16x8t x)
     return Bstore32le(Baddr32(p, 4 * i + j), _mm_cvtsi128_si32(x));
 }
 
+static inline B16x8t B16x8eighthjload(const void *p, size_t i, size_t j)
+{
+    __m128i x = _mm_cvtsi32_si128(Bload16le(Baddr16(p, 8 * i + j)));
+    x = _mm_or_si128(x, _mm_slli_epi32(x, 14));
+    x = _mm_or_si128(x, _mm_slli_epi64(x, 28));
+    x = _mm_or_si128(x, _mm_slli_si128(x, 7));
+    return _mm_and_si128(x, _mm_set1_epi16(0x0003));
+}
+
+static inline void B16x8eighthjstore(void *p, size_t i, size_t j, B16x8t x)
+{
+    x = _mm_or_si128(x, _mm_srli_si128(x, 7));
+    x = _mm_or_si128(x, _mm_srli_epi64(x, 28));
+    x = _mm_or_si128(x, _mm_srli_epi32(x, 14));
+    return Bstore16le(Baddr16(p, 8 * i + j), _mm_cvtsi128_si32(x));
+}
+
 #define B16x8shl(x, k) _mm_slli_epi16(x, k)
 #define B16x8shr(x, k) _mm_srli_epi16(x, k)
 #define B16x8and(x, m) _mm_and_si128(x, m)
@@ -371,6 +388,37 @@ static inline void B16x8quarterjstore(void *p, size_t i, size_t j, B16x8t x)
     Bstore32le(Baddr32(p, 4 * i + j), y);
 }
 
+static inline B16x8t B16x8eighthjload(const void *p, size_t i, size_t j)
+{
+#ifdef B16x4load
+    uint64_t y = Bload16le(Baddr16(p, 8 * i + j));
+    uint64_t m = 0x0003000300030003;
+    y |= y << 14;
+    y |= y << 28;
+    B16x8t x = { y & m, (y >> 8) & m };
+#else
+    uint32_t y = Bload16le(Baddr16(p, 8 * i + j));
+    uint32_t m = 0x00030003;
+    y |= y << 14;
+    B16x8t x = { { (y >> 0) & m, (y >>  4) & m },
+		 { (y >> 8) & m, (y >> 12) & m } };
+#endif
+    return x;
+}
+
+static inline void B16x8eighthjstore(void *p, size_t i, size_t j, B16x8t x)
+{
+#ifdef B16x4load
+    uint64_t y = x.lo | x.hi << 8;
+    y |= y >> 28;
+#else
+    uint32_t y = x.lo.lo << 0 | x.lo.hi << 4
+	       | x.hi.lo << 8 | x.hi.hi << 12;
+#endif
+    y |= y >> 14;
+    Bstore16le(Baddr32(p, 4 * i + j), y);
+}
+
 static inline B16x8t B16x8shl(B16x8t x, int k)
 {
     B16x8t y = { B16x4shl(x.lo, k), B16x4shl(x.hi, k) };
@@ -403,8 +451,10 @@ static inline B16x8t B16x8or(B16x8t x, B16x8t y)
 
 #define B16x8halfload(p, i) B16x8halfjload(p, i, 0)
 #define B16x8quarterload(p, i) B16x8quarterjload(p, i, 0)
+#define B16x8eighthload(p, i) B16x8eighthjload(p, i, 0)
 #define B16x8halfstore(p, i, x) B16x8halfjstore(p, i, 0, x)
 #define B16x8quarterstore(p, i, x) B16x8quarterjstore(p, i, 0, x)
+#define B16x8eighthstore(p, i, x) B16x8eighthjstore(p, i, 0, x)
 
 /*
  * B16x16 true SIMD engine, backed by either a YMM register or two B16x8.

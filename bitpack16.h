@@ -474,6 +474,18 @@
 	B##store(p, 7, y);						\
     } while (0)
 
+#define BitPack16_9x2(B, v, p)						\
+    do {								\
+	B##t x, y;							\
+	B##m m = B##mask(9);						\
+	x = B##and(B##load(v, 0), m);					\
+	y = B##load(v, 1);						\
+	x = B##or(x, B##shl(B##clean(y, B##mask(7)), 9));		\
+	B##store(p, 0, x);						\
+	y = B##extract(y, 7, 2, m);					\
+	B##eighthstore(p, 1, y);					\
+    } while (0)
+
 #define BitPack16_9x4(B, v, p)						\
     do {								\
 	B##t x, y;							\

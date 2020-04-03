@@ -421,6 +421,17 @@
 	B##store(v, 15, B##clean(B##shr(y, 8), m));			\
     } while (0)
 
+#define BitUnpack16_9x2(B, v, p)					\
+    do {								\
+	B##t x, y;							\
+	B##m m = B##mask(9);						\
+	x = B##load(p, 0);						\
+	B##store(v, 0, B##and(x, m));					\
+	y = B##eighthload(p, 1);					\
+	x = B##clean(B##shr(x, 9), B##mask(7));				\
+	B##store(v, 1, B##or(x, B##shl(y, 7)));				\
+    } while (0)
+
 #define BitUnpack16_9x4(B, v, p)					\
     do {								\
 	B##t x, y;							\
