@@ -163,6 +163,23 @@ static inline void B16x4quarterjstore(const void *p, size_t i, size_t j, uint64_
     Bstore16le(Baddr16(p, 4 * i + j), x);
 }
 
+static inline uint64_t B16x4eighthjload(const void *p, size_t i, size_t j)
+{
+    uint64_t x = *Baddr8(p, 8 * i + j);
+    x |= x << 6;
+    x |= x << 12;
+    x |= x << 24;
+    return x & 0x0003000300030003;
+}
+
+static inline void B16x4eighthjstore(const void *p, size_t i, size_t j, uint64_t x)
+{
+    x |= x >> 24;
+    x |= x >> 12;
+    x |= x >> 6;
+    *Baddr8(p, 8 * i + j) = x;
+}
+
 #define B16x4shl(x, k) ((x) << (k))
 #define B16x4shr(x, k) ((x) >> (k))
 #define B16x4and(x, m) ((x) & (m))
@@ -229,6 +246,23 @@ static inline void B16x4quarterjstore(const void *p, size_t i, size_t j, B16x4t 
     Bstore16le(Baddr16(p, 4 * i + j), y);
 }
 
+static inline B16x4t B16x4eighthjload(const void *p, size_t i, size_t j)
+{
+    uint32_t y = *Baddr8(p, 8 * i + j);
+    y |= y << 6;
+    y |= y << 12;
+    B16x4t x = { y & 0x00030003, (y >> 8) & 0x00030003 };
+    return x;
+}
+
+static inline void B16x4eighthjstore(const void *p, size_t i, size_t j, B16x4t x)
+{
+    uint32_t y = x.lo | x.hi << 8;
+    y |= y >> 12;
+    y |= y >> 6;
+    *Baddr8(p, 8 * i + j) = y;
+}
+
 static inline B16x4t B16x4shl(B16x4t x, int k)
 {
     B16x4t y = { x.lo << k, x.hi << k };
@@ -258,8 +292,10 @@ static inline B16x4t B16x4or(B16x4t x, B16x4t y)
 
 #define B16x4halfload(p, i) B16x4halfjload(p, i, 0)
 #define B16x4quarterload(p, i) B16x4quarterjload(p, i, 0)
+#define B16x4eighthload(p, i) B16x4eighthjload(p, i, 0)
 #define B16x4halfstore(p, i, x) B16x4halfjstore(p, i, 0, x)
 #define B16x4quarterstore(p, i, x) B16x4quarterjstore(p, i, 0, x)
+#define B16x4eighthstore(p, i, x) B16x4eighthjstore(p, i, 0, x)
 #define B16x4clean(x, m) B16x4and(x, m)
 #define B16x4extract(x, k0, kn, m) Biextract(B16x4, x, k0, kn, m)
 #define B16x4combine(x, y, kx, ky, m) Bicombine(B16x4, x, y, kx, ky, m)
