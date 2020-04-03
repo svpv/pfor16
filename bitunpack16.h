@@ -890,6 +890,66 @@
 	B##store(v, 15, B##clean(B##shr(y, 2), m));			\
     } while (0)
 
+#define BitUnpack16_15x8(B, v, p)					\
+    do {								\
+	B##t x, y;							\
+	B##m m = B##mask(15);						\
+	x = B##load(p, 0);						\
+	B##store(v, 0, B##and(x, m));					\
+	y = B##load(p, 1);						\
+	B##store(v, 1, B##combine(x, y, 1, 14, m));			\
+	x = B##load(p, 2);						\
+	B##store(v, 2, B##combine(y, x, 2, 13, m));			\
+	y = B##load(p, 3);						\
+	B##store(v, 3, B##combine(x, y, 3, 12, m));			\
+	x = B##load(p, 4);						\
+	B##store(v, 4, B##combine(y, x, 4, 11, m));			\
+	y = B##load(p, 5);						\
+	B##store(v, 5, B##combine(x, y, 5, 10, m));			\
+	x = B##load(p, 6);						\
+	B##store(v, 6, B##combine(y, x, 6, 9, m));			\
+	y = B##halfload(p, 7);						\
+	x = B##clean(B##shr(x, 9), B##mask(7));				\
+	B##store(v, 7, B##or(x, B##shl(y, 7)));				\
+    } while (0)
+
+#define BitUnpack16_15x16(B, v, p)					\
+    do {								\
+	B##t x, y;							\
+	B##m m = B##mask(15);						\
+	x = B##load(p, 0);						\
+	B##store(v, 0, B##and(x, m));					\
+	y = B##load(p, 1);						\
+	B##store(v, 1, B##combine(x, y, 1, 14, m));			\
+	x = B##load(p, 2);						\
+	B##store(v, 2, B##combine(y, x, 2, 13, m));			\
+	y = B##load(p, 3);						\
+	B##store(v, 3, B##combine(x, y, 3, 12, m));			\
+	x = B##load(p, 4);						\
+	B##store(v, 4, B##combine(y, x, 4, 11, m));			\
+	y = B##load(p, 5);						\
+	B##store(v, 5, B##combine(x, y, 5, 10, m));			\
+	x = B##load(p, 6);						\
+	B##store(v, 6, B##combine(y, x, 6, 9, m));			\
+	y = B##load(p, 7);						\
+	B##store(v, 7, B##combine(x, y, 7, 8, m));			\
+	x = B##load(p, 8);						\
+	B##store(v, 8, B##combine(y, x, 8, 7, m));			\
+	y = B##load(p, 9);						\
+	B##store(v, 9, B##combine(x, y, 9, 6, m));			\
+	x = B##load(p, 10);						\
+	B##store(v, 10, B##combine(y, x, 10, 5, m));			\
+	y = B##load(p, 11);						\
+	B##store(v, 11, B##combine(x, y, 11, 4, m));			\
+	x = B##load(p, 12);						\
+	B##store(v, 12, B##combine(y, x, 12, 3, m));			\
+	y = B##load(p, 13);						\
+	B##store(v, 13, B##combine(x, y, 13, 2, m));			\
+	x = B##load(p, 14);						\
+	B##store(v, 14, B##combine(y, x, 14, 1, m));			\
+	B##store(v, 15, B##clean(B##shr(x, 1), m));			\
+    } while (0)
+
 #define BitPack16_func(m, n, X, N)					\
     static inline void bitunpack16_##m##x##N(uint16_t *v, const void *p)\
     {									\
