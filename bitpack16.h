@@ -1262,6 +1262,93 @@
 	B##store(p, 14, x);						\
     } while (0)
 
+#define BitPack16_16x1(B, v, p)						\
+    do {								\
+	B##t x;								\
+	x = B##load(v, 0);						\
+	B##store(p, 0, x);						\
+    } while (0)
+
+#define BitPack16_16x2(B, v, p)						\
+    do {								\
+	B##t x, y;							\
+	x = B##load(v, 0);						\
+	B##store(p, 0, x);						\
+	y = B##load(v, 1);						\
+	B##store(p, 1, y);						\
+    } while (0)
+
+#define BitPack16_16x4(B, v, p)						\
+    do {								\
+	B##t x, y;							\
+	x = B##load(v, 0);						\
+	B##store(p, 0, x);						\
+	y = B##load(v, 1);						\
+	B##store(p, 1, y);						\
+	x = B##load(v, 2);						\
+	B##store(p, 2, x);						\
+	y = B##load(v, 3);						\
+	B##store(p, 3, y);						\
+    } while (0)
+
+#define BitPack16_16x8(B, v, p)						\
+    do {								\
+	B##t x, y;							\
+	x = B##load(v, 0);						\
+	B##store(p, 0, x);						\
+	y = B##load(v, 1);						\
+	B##store(p, 1, y);						\
+	x = B##load(v, 2);						\
+	B##store(p, 2, x);						\
+	y = B##load(v, 3);						\
+	B##store(p, 3, y);						\
+	x = B##load(v, 4);						\
+	B##store(p, 4, x);						\
+	y = B##load(v, 5);						\
+	B##store(p, 5, y);						\
+	x = B##load(v, 6);						\
+	B##store(p, 6, x);						\
+	y = B##load(v, 7);						\
+	B##store(p, 7, y);						\
+    } while (0)
+
+#define BitPack16_16x16(B, v, p)					\
+    do {								\
+	B##t x, y;							\
+	x = B##load(v, 0);						\
+	B##store(p, 0, x);						\
+	y = B##load(v, 1);						\
+	B##store(p, 1, y);						\
+	x = B##load(v, 2);						\
+	B##store(p, 2, x);						\
+	y = B##load(v, 3);						\
+	B##store(p, 3, y);						\
+	x = B##load(v, 4);						\
+	B##store(p, 4, x);						\
+	y = B##load(v, 5);						\
+	B##store(p, 5, y);						\
+	x = B##load(v, 6);						\
+	B##store(p, 6, x);						\
+	y = B##load(v, 7);						\
+	B##store(p, 7, y);						\
+	x = B##load(v, 8);						\
+	B##store(p, 8, x);						\
+	y = B##load(v, 9);						\
+	B##store(p, 9, y);						\
+	x = B##load(v, 10);						\
+	B##store(p, 10, x);						\
+	y = B##load(v, 11);						\
+	B##store(p, 11, y);						\
+	x = B##load(v, 12);						\
+	B##store(p, 12, x);						\
+	y = B##load(v, 13);						\
+	B##store(p, 13, y);						\
+	x = B##load(v, 14);						\
+	B##store(p, 14, x);						\
+	y = B##load(v, 15);						\
+	B##store(p, 15, y);						\
+    } while (0)
+
 #define BitPack16_func(m, n, X, N)					\
     static inline void bitpack16_##m##x##N(const uint16_t *v, void *p)	\
     {									\
