@@ -720,6 +720,19 @@
 	B##store(v, 15, B##clean(B##shr(y, 4), m));			\
     } while (0)
 
+#define BitUnpack16_13x2(B, v, p)					\
+    do {								\
+	B##t x, y;							\
+	B##m m = B##mask(13);						\
+	x = B##load(p, 0);						\
+	B##store(v, 0, B##and(x, m));					\
+	x = B##clean(B##shr(x, 13), B##mask(3));			\
+	y = B##halfload(p, 1);						\
+	x = B##or(x, B##shl(y, 3));					\
+	y = B##eighthjload(p, 1, 4);					\
+	B##store(v, 1, B##or(x, B##shl(y, 11)));			\
+    } while (0)
+
 #define BitUnpack16_13x4(B, v, p)					\
     do {								\
 	B##t x, y;							\

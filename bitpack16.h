@@ -889,6 +889,19 @@
 	B##store(p, 11, y);						\
     } while (0)
 
+#define BitPack16_13x2(B, v, p)						\
+    do {								\
+	B##t x, y;							\
+	B##m m = B##mask(13);						\
+	x = B##and(B##load(v, 0), m);					\
+	y = B##load(v, 1);						\
+	x = B##or(x, B##shl(B##clean(y, B##mask(3)), 13));		\
+	B##store(p, 0, x);						\
+	y = B##extract(y, 3, 10, m);					\
+	B##halfstore(p, 1, B##and(y, B##mask(8)));			\
+	B##eighthjstore(p, 1, 4, B##clean(B##shr(y, 8), B##mask(8)));	\
+    } while (0)
+
 #define BitPack16_13x4(B, v, p)						\
     do {								\
 	B##t x, y;							\
