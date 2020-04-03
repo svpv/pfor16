@@ -889,6 +889,118 @@
 	B##store(p, 11, y);						\
     } while (0)
 
+#define BitPack16_13x4(B, v, p)						\
+    do {								\
+	B##t x, y;							\
+	B##m m = B##mask(13);						\
+	x = B##and(B##load(v, 0), m);					\
+	y = B##load(v, 1);						\
+	x = B##or(x, B##shl(B##clean(y, B##mask(3)), 13));		\
+	B##store(p, 0, x);						\
+	y = B##extract(y, 3, 10, m);					\
+	x = B##load(v, 2);						\
+	y = B##or(y, B##shl(B##clean(x, B##mask(6)), 10));		\
+	B##store(p, 1, y);						\
+	x = B##extract(x, 6, 7, m);					\
+	y = B##load(v, 3);						\
+	x = B##or(x, B##shl(B##clean(y, B##mask(9)), 7));		\
+	B##store(p, 2, x);						\
+	y = B##extract(y, 9, 4, m);					\
+	B##quarterstore(p, 3, y);					\
+    } while (0)
+
+#define BitPack16_13x8(B, v, p)						\
+    do {								\
+	B##t x, y;							\
+	B##m m = B##mask(13);						\
+	x = B##and(B##load(v, 0), m);					\
+	y = B##load(v, 1);						\
+	x = B##or(x, B##shl(B##clean(y, B##mask(3)), 13));		\
+	B##store(p, 0, x);						\
+	y = B##extract(y, 3, 10, m);					\
+	x = B##load(v, 2);						\
+	y = B##or(y, B##shl(B##clean(x, B##mask(6)), 10));		\
+	B##store(p, 1, y);						\
+	x = B##extract(x, 6, 7, m);					\
+	y = B##load(v, 3);						\
+	x = B##or(x, B##shl(B##clean(y, B##mask(9)), 7));		\
+	B##store(p, 2, x);						\
+	y = B##extract(y, 9, 4, m);					\
+	x = B##load(v, 4);						\
+	y = B##or(y, B##shl(B##clean(x, B##mask(12)), 4));		\
+	B##store(p, 3, y);						\
+	x = B##extract(x, 12, 1, m);					\
+	x = B##or(x, B##shl(B##and(B##load(v, 5), m), 1));		\
+	y = B##load(v, 6);						\
+	x = B##or(x, B##shl(B##clean(y, B##mask(2)), 14));		\
+	B##store(p, 4, x);						\
+	y = B##extract(y, 2, 11, m);					\
+	x = B##load(v, 7);						\
+	y = B##or(y, B##shl(B##clean(x, B##mask(5)), 11));		\
+	B##store(p, 5, y);						\
+	x = B##extract(x, 5, 8, m);					\
+	B##halfstore(p, 6, x);						\
+    } while (0)
+
+#define BitPack16_13x16(B, v, p)					\
+    do {								\
+	B##t x, y;							\
+	B##m m = B##mask(13);						\
+	x = B##and(B##load(v, 0), m);					\
+	y = B##load(v, 1);						\
+	x = B##or(x, B##shl(B##clean(y, B##mask(3)), 13));		\
+	B##store(p, 0, x);						\
+	y = B##extract(y, 3, 10, m);					\
+	x = B##load(v, 2);						\
+	y = B##or(y, B##shl(B##clean(x, B##mask(6)), 10));		\
+	B##store(p, 1, y);						\
+	x = B##extract(x, 6, 7, m);					\
+	y = B##load(v, 3);						\
+	x = B##or(x, B##shl(B##clean(y, B##mask(9)), 7));		\
+	B##store(p, 2, x);						\
+	y = B##extract(y, 9, 4, m);					\
+	x = B##load(v, 4);						\
+	y = B##or(y, B##shl(B##clean(x, B##mask(12)), 4));		\
+	B##store(p, 3, y);						\
+	x = B##extract(x, 12, 1, m);					\
+	x = B##or(x, B##shl(B##and(B##load(v, 5), m), 1));		\
+	y = B##load(v, 6);						\
+	x = B##or(x, B##shl(B##clean(y, B##mask(2)), 14));		\
+	B##store(p, 4, x);						\
+	y = B##extract(y, 2, 11, m);					\
+	x = B##load(v, 7);						\
+	y = B##or(y, B##shl(B##clean(x, B##mask(5)), 11));		\
+	B##store(p, 5, y);						\
+	x = B##extract(x, 5, 8, m);					\
+	y = B##load(v, 8);						\
+	x = B##or(x, B##shl(B##clean(y, B##mask(8)), 8));		\
+	B##store(p, 6, x);						\
+	y = B##extract(y, 8, 5, m);					\
+	x = B##load(v, 9);						\
+	y = B##or(y, B##shl(B##clean(x, B##mask(11)), 5));		\
+	B##store(p, 7, y);						\
+	x = B##extract(x, 11, 2, m);					\
+	x = B##or(x, B##shl(B##and(B##load(v, 10), m), 2));		\
+	y = B##load(v, 11);						\
+	x = B##or(x, B##shl(B##clean(y, B##mask(1)), 15));		\
+	B##store(p, 8, x);						\
+	y = B##extract(y, 1, 12, m);					\
+	x = B##load(v, 12);						\
+	y = B##or(y, B##shl(B##clean(x, B##mask(4)), 12));		\
+	B##store(p, 9, y);						\
+	x = B##extract(x, 4, 9, m);					\
+	y = B##load(v, 13);						\
+	x = B##or(x, B##shl(B##clean(y, B##mask(7)), 9));		\
+	B##store(p, 10, x);						\
+	y = B##extract(y, 7, 6, m);					\
+	x = B##load(v, 14);						\
+	y = B##or(y, B##shl(B##clean(x, B##mask(10)), 6));		\
+	B##store(p, 11, y);						\
+	x = B##extract(x, 10, 3, m);					\
+	x = B##or(x, B##shl(B##clean(B##load(v, 15), m), 3));		\
+	B##store(p, 12, x);						\
+    } while (0)
+
 #define BitPack16_func(m, n, X, N)					\
     static inline void bitpack16_##m##x##N(const uint16_t *v, void *p)	\
     {									\
