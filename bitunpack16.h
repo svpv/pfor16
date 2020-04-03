@@ -573,6 +573,60 @@
 	B##store(v, 15, B##clean(B##shr(y, 6), m));			\
     } while (0)
 
+#define BitUnpack16_11x8(B, v, p)					\
+    do {								\
+	B##t x, y;							\
+	B##m m = B##mask(11);						\
+	x = B##load(p, 0);						\
+	B##store(v, 0, B##and(x, m));					\
+	y = B##load(p, 1);						\
+	B##store(v, 1, B##combine(x, y, 5, 6, m));			\
+	x = B##load(p, 2);						\
+	B##store(v, 2, B##combine(y, x, 10, 1, m));			\
+	B##store(v, 3, B##and(B##shr(x, 1), m));			\
+	y = B##load(p, 3);						\
+	B##store(v, 4, B##combine(x, y, 4, 7, m));			\
+	x = B##load(p, 4);						\
+	B##store(v, 5, B##combine(y, x, 9, 2, m));			\
+	B##store(v, 6, B##and(B##shr(x, 2), m));			\
+	y = B##halfload(p, 5);						\
+	x = B##clean(B##shr(x, 13), B##mask(3));			\
+	B##store(v, 7, B##or(x, B##shl(y, 3)));				\
+    } while (0)
+
+#define BitUnpack16_11x16(B, v, p)					\
+    do {								\
+	B##t x, y;							\
+	B##m m = B##mask(11);						\
+	x = B##load(p, 0);						\
+	B##store(v, 0, B##and(x, m));					\
+	y = B##load(p, 1);						\
+	B##store(v, 1, B##combine(x, y, 5, 6, m));			\
+	x = B##load(p, 2);						\
+	B##store(v, 2, B##combine(y, x, 10, 1, m));			\
+	B##store(v, 3, B##and(B##shr(x, 1), m));			\
+	y = B##load(p, 3);						\
+	B##store(v, 4, B##combine(x, y, 4, 7, m));			\
+	x = B##load(p, 4);						\
+	B##store(v, 5, B##combine(y, x, 9, 2, m));			\
+	B##store(v, 6, B##and(B##shr(x, 2), m));			\
+	y = B##load(p, 5);						\
+	B##store(v, 7, B##combine(x, y, 3, 8, m));			\
+	x = B##load(p, 6);						\
+	B##store(v, 8, B##combine(y, x, 8, 3, m));			\
+	B##store(v, 9, B##and(B##shr(x, 3), m));			\
+	y = B##load(p, 7);						\
+	B##store(v, 10, B##combine(x, y, 2, 9, m));			\
+	x = B##load(p, 8);						\
+	B##store(v, 11, B##combine(y, x, 7, 4, m));			\
+	B##store(v, 12, B##and(B##shr(x, 4), m));			\
+	y = B##load(p, 9);						\
+	B##store(v, 13, B##combine(x, y, 1, 10, m));			\
+	x = B##load(p, 10);						\
+	B##store(v, 14, B##combine(y, x, 6, 5, m));			\
+	B##store(v, 15, B##clean(B##shr(x, 5), m));			\
+    } while (0)
+
 #define BitPack16_func(m, n, X, N)					\
     static inline void bitunpack16_##m##x##N(uint16_t *v, const void *p)\
     {									\
