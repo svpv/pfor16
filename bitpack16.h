@@ -681,6 +681,24 @@
 	B##store(p, 9, y);						\
     } while (0)
 
+#define BitPack16_11x4(B, v, p)						\
+    do {								\
+	B##t x, y;							\
+	B##m m = B##mask(11);						\
+	x = B##and(B##load(v, 0), m);					\
+	y = B##load(v, 1);						\
+	x = B##or(x, B##shl(B##clean(y, B##mask(5)), 11));		\
+	B##store(p, 0, x);						\
+	y = B##extract(y, 5, 6, m);					\
+	x = B##load(v, 2);						\
+	y = B##or(y, B##shl(B##clean(x, B##mask(10)), 6));		\
+	B##store(p, 1, y);						\
+	x = B##extract(x, 10, 1, m);					\
+	x = B##or(x, B##shl(B##and(B##load(v, 3), m), 1));		\
+	B##halfstore(p, 2, B##and(x, B##mask(8)));			\
+	B##quarterjstore(p, 2, 2, B##clean(B##shr(x, 8), B##mask(8)));	\
+    } while (0)
+
 #define BitPack16_11x8(B, v, p)						\
     do {								\
 	B##t x, y;							\
