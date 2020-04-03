@@ -18,6 +18,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+BitPack16_func(0, 16, 16, 256)
+BitPack16_func(0,  8, 16, 128)
+BitPack16_func(0,  4, 16,  64)
+BitPack16_func(0,  2, 16,  32)
+BitPack16_func(0,  1, 16,  16)
+BitPack16_func(0,  1,  8,   8)
+BitPack16_func(0,  1,  4,   4)
+BitPack16_func(0,  1,  2,   2)
+
 BitPack16_func(1, 16, 16, 256)
 BitPack16_func(1, 16,  8, 128)
 BitPack16_func(1, 16,  4,  64)

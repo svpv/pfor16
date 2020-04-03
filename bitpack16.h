@@ -22,6 +22,31 @@
 #include <assert.h>
 #include "bitpack16-simd.h"
 
+#define BitPack16_0x1(B, v, p)						\
+    do {								\
+	(void) v, (void) p;						\
+    } while (0)
+
+#define BitPack16_0x2(B, v, p)						\
+    do {								\
+	(void) v, (void) p;						\
+    } while (0)
+
+#define BitPack16_0x4(B, v, p)						\
+    do {								\
+	(void) v, (void) p;						\
+    } while (0)
+
+#define BitPack16_0x8(B, v, p)						\
+    do {								\
+	(void) v, (void) p;						\
+    } while (0)
+
+#define BitPack16_0x16(B, v, p)						\
+    do {								\
+	(void) v, (void) p;						\
+    } while (0)
+
 #define BitPack16_1x16(B, v, p)						\
     do {								\
 	B##t x;								\

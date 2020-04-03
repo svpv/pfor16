@@ -21,6 +21,67 @@
 #pragma once
 #include "bitpack16-simd.h"
 
+#define BitUnpack16_0x1(B, v, p)					\
+    do {								\
+	B##t x;								\
+	memset(&x, 0, sizeof x);					\
+	B##store(v, 0, x);						\
+    } while (0)
+
+#define BitUnpack16_0x2(B, v, p)					\
+    do {								\
+	B##t x;								\
+	memset(&x, 0, sizeof x);					\
+	B##store(v, 0, x);						\
+	B##store(v, 1, x);						\
+    } while (0)
+
+#define BitUnpack16_0x4(B, v, p)					\
+    do {								\
+	B##t x;								\
+	memset(&x, 0, sizeof x);					\
+	B##store(v, 0, x);						\
+	B##store(v, 1, x);						\
+	B##store(v, 2, x);						\
+	B##store(v, 3, x);						\
+    } while (0)
+
+#define BitUnpack16_0x8(B, v, p)					\
+    do {								\
+	B##t x;								\
+	memset(&x, 0, sizeof x);					\
+	B##store(v, 0, x);						\
+	B##store(v, 1, x);						\
+	B##store(v, 2, x);						\
+	B##store(v, 3, x);						\
+	B##store(v, 4, x);						\
+	B##store(v, 5, x);						\
+	B##store(v, 6, x);						\
+	B##store(v, 7, x);						\
+    } while (0)
+
+#define BitUnpack16_0x16(B, v, p)					\
+    do {								\
+	B##t x;								\
+	memset(&x, 0, sizeof x);					\
+	B##store(v, 0, x);						\
+	B##store(v, 1, x);						\
+	B##store(v, 2, x);						\
+	B##store(v, 3, x);						\
+	B##store(v, 4, x);						\
+	B##store(v, 5, x);						\
+	B##store(v, 6, x);						\
+	B##store(v, 7, x);						\
+	B##store(v, 8, x);						\
+	B##store(v, 9, x);						\
+	B##store(v, 10, x);						\
+	B##store(v, 11, x);						\
+	B##store(v, 12, x);						\
+	B##store(v, 13, x);						\
+	B##store(v, 14, x);						\
+	B##store(v, 15, x);						\
+    } while (0)
+
 #define BitUnpack16_1x16(B, v, p)					\
     do {								\
 	B##t x;								\
