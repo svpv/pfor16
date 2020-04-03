@@ -1014,6 +1014,19 @@
 	B##store(p, 12, x);						\
     } while (0)
 
+#define BitPack16_14x2(B, v, p)						\
+    do {								\
+	B##t x, y;							\
+	B##m m = B##mask(14);						\
+	x = B##and(B##load(v, 0), m);					\
+	y = B##load(v, 1);						\
+	x = B##or(x, B##shl(B##clean(y, B##mask(2)), 14));		\
+	B##store(p, 0, x);						\
+	y = B##extract(y, 2, 12, m);					\
+	B##halfstore(p, 1, B##and(y, B##mask(8)));			\
+	B##quarterjstore(p, 1, 2, B##clean(B##shr(y, 8), B##mask(8)));	\
+    } while (0)
+
 #define BitPack16_14x4(B, v, p)						\
     do {								\
 	B##t x, y;							\
