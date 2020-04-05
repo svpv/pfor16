@@ -183,3 +183,66 @@ static unsigned rdopt256(const uint16_t h0[32], const uint16_t h1[32],
     }
     return tco0;
 }
+
+// We tile the input with blocks of 64, 128 and 256 integers in such a way that
+// minimizes the sum of the TCOs.  A tile then describes a block, tentative or
+// final, along with the sum of the TCOs up to an including the block.
+struct tile {
+    uint64_t tco;
+    struct bp bp;
+    uint8_t span;
+};
+
+// Find the optimal tiling by evaluating the blocks of 64 integers and
+// their various combinations, using the temporary array [tt,tt+n/64).
+// Returns t such that [t,tt+n/64) is the sequence of tiles to be encoded.
+static struct tile *enctile(const uint16_t *v, size_t n, struct tile *tt)
+{
+    // Forward parse: at each iteration, we process the i-th block of 64
+    // integers and fill tt[i].  By the end of the iteration, we know the
+    // optimal tiling for the input segment up to and including the block.
+    // Note that the resulting i-th block implicitly references one of the
+    // previous blocks - at (i-1), (i-2), or (i-4), depending on its size.
+    uint16_t hh[4][32];
+    for (size_t i = 0; i < n / 64; i++) {
+	// A block of 64 integers.
+	uint16_t *h0 = hh[i%4];
+	histo64(v + 64 * i, h0);
+	struct tile *t = &tt[i];
+	unsigned tco64 = rdopt64(h0, &t->bp);
+	uint64_t tco0 = (i > 0) ? t[-1].tco : 0;
+	t->tco = tco0 + tco64, t->span = 1;
+	// Try a combined block of 128 integers.
+	if (i >= 1) {
+	    struct bp bp;
+	    uint16_t *h1 = hh[(i-1)%4];
+	    unsigned tco128 = rdopt128(h0, h1, &bp);
+	    tco0 = (i > 1) ? t[-2].tco : 0;
+	    if (t->tco > tco0 + tco128) {
+		t->tco = tco0 + tco128, t->span = 2;
+		t->bp = bp;
+	    }
+	}
+	// Try a combined block of 256 integers.
+	if (i >= 3) {
+	    struct bp bp;
+	    unsigned tco256 = rdopt256(hh[0], hh[1], hh[2], hh[3], &bp);
+	    tco0 = (i > 3) ? t[-4].tco : 0;
+	    if (t->tco > tco0 + tco256) {
+		t->tco = tco0 + tco256, t->span = 4;
+		t->bp = bp;
+	    }
+	}
+    }
+    // By now we know the optimal tiling for the whole input, but it has to be
+    // unraveled from the end.  We follow the back-references and repackage the
+    // tiles back to back (clobbering the inactive slots that have been merged
+    // into larger blocks).
+    intptr_t i = n / 64 - 1;
+    struct tile *t = tt + n / 64;
+    do {
+	*--t = tt[i];
+	i -= t->span;
+    } while (i >= 0);
+    return t;
+}
