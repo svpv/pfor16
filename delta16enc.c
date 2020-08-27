@@ -40,7 +40,63 @@ last:	*v -= v1;
     }
 }
 
+#if defined(__i386__) || defined(__x86_64__) || defined(__SSE2__)
+#include <tmmintrin.h>
+
+#define XMM2ITER(v, xv)							\
+    do {								\
+	__m128i xw, d;							\
+	xw = _mm_loadu_si128((void *)(v + 0));				\
+	d = _mm_sub_epi16(xw, _mm_alignr_epi8(xw, xv, 14));		\
+	_mm_storeu_si128((void *)(v + 0), d);				\
+	xv = _mm_loadu_si128((void *)(v + 8));				\
+	d = _mm_sub_epi16(xv, _mm_alignr_epi8(xv, xw, 14));		\
+	_mm_storeu_si128((void *)(v + 8), d);				\
+    } while (0)
+
+#ifndef __SSSE3__
+__attribute__((target("ssse3")))
+#endif
+static void delta16enc_ssse3(uint16_t *v, size_t n)
+{
+    unsigned vx = 0;
+    if (likely(n >= 16)) {
+	__m128i xv = _mm_set1_epi32(vx);
+	uint16_t *vend = v + n;
+	uint16_t *last16 = vend - 16;
+	do {
+	    XMM2ITER(v, xv);
+	    v += 16;
+	} while (v <= last16);
+	n = vend - v;
+	if (unlikely(n == 0))
+	    return;
+	vx = _mm_extract_epi16(xv, 7);
+    }
+    delta16enc_tail(v, n, vx);
+}
+
+static void delta16enc_scalar(uint16_t *v, size_t n)
+{
+    delta16enc_tail(v, n, 0);
+}
+
+static void *delta16enc_ifunc()
+{
+    __builtin_cpu_init();
+    // Slow palignr on Bobcat.
+    if (__builtin_cpu_supports("ssse3") && !__builtin_cpu_is("btver1"))
+	return delta16enc_ssse3;
+    return delta16enc_scalar;
+}
+
+void delta16enc(uint16_t *v, size_t n) __attribute__((ifunc("delta16enc_ifunc")));
+
+#else
+
 void delta16enc(uint16_t *v, size_t n)
 {
     delta16enc_tail(v, n, 0);
 }
+
+#endif
