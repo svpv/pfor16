@@ -92,6 +92,39 @@ static void *delta16enc_ifunc()
 
 void delta16enc(uint16_t *v, size_t n) __attribute__((ifunc("delta16enc_ifunc")));
 
+#elif defined(__ARM_NEON) || defined(__aarch64__)
+#include <arm_neon.h>
+
+#define XMM2ITER(v, xv)							\
+    do {								\
+	uint16x8_t xw, d;						\
+	xw = vld1q_u16(v + 0);						\
+	d = vsubq_u16(xw, vextq_u16(xv, xw, 7));			\
+	vst1q_u16(v + 0, d);						\
+	xv = vld1q_u16(v + 8);						\
+	d = vsubq_u16(xv, vextq_u16(xw, xv, 7));			\
+	vst1q_u16(v + 8, d);						\
+    } while (0)
+
+void delta16enc(uint16_t *v, size_t n)
+{
+    unsigned vx = 0;
+    if (likely(n >= 16)) {
+	uint16x8_t xv = vdupq_n_u16(vx);
+	uint16_t *vend = v + n;
+	uint16_t *last16 = vend - 16;
+	do {
+	    XMM2ITER(v, xv);
+	    v += 16;
+	} while (v <= last16);
+	n = vend - v;
+	if (unlikely(n == 0))
+	    return;
+	vx = xv[7];
+    }
+    delta16enc_tail(v, n, vx);
+}
+
 #else
 
 void delta16enc(uint16_t *v, size_t n)
