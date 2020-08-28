@@ -39,22 +39,29 @@ void delta16dec(uint16_t *v, size_t n);
 
 int main()
 {
-    uint16_t v[1<<NLOG];
-    for (int i = 0; i < (1<<NLOG); i++)
-	v[i] = rand32();
-    uint64_t t0 = rdtsc();
-    for (int i = 0; i < (1<<(32-NLOG)); i++)
-	delta16enc(v, (1<<NLOG));
-    uint64_t t1 = rdtsc();
-    for (int i = 0; i < (1<<(32-NLOG)); i++)
-	delta16dec(v, (1<<NLOG));
-    uint64_t t2 = rdtsc();
+    uint64_t tenc = 0, tdec = 0, nsum = 0;
+    const int K = (1<<(30-NLOG));
+    for (int k = 0; k < K; k++) {
+	const int N = rand32()%(1<<NLOG) + (1<<NLOG)/2;
+	uint16_t v[N];
+	uint64_t rsave = rand32state;
+	for (int i = 0; i < N; i++)
+	    v[i] = rand32();
+	uint64_t t0 = rdtsc();
+	delta16enc(v, N);
+	uint64_t t1 = rdtsc();
+	delta16dec(v, N);
+	uint64_t t2 = rdtsc();
+	rand32state = rsave;
+	for (int i = 0; i < N; i++)
+	    assert(v[i] == (uint16_t) rand32());
+	tenc += t1 - t0;
+	tdec += t2 - t1;
+	nsum += N;
+    }
     printf("delta16enc: %.2f cycles per integer\n"
 	   "delta16dec: %.2f cycles per integer\n",
-	   (t1 - t0) / (double) UINT32_MAX,
-	   (t2 - t1) / (double) UINT32_MAX);
-    rand32state = R32K;
-    for (int i = 0; i < (1<<NLOG); i++)
-	assert(v[i] == (uint16_t) rand32());
+	   tenc / (double) nsum,
+	   tdec / (double) nsum);
     return 0;
 }
