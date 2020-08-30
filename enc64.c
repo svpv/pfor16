@@ -246,3 +246,133 @@ static struct tile *enctile(const uint16_t *v, size_t n, struct tile *tt)
     } while (i >= 0);
     return t;
 }
+
+#include "bitpack16.h"
+
+static unsigned char *encpatch(const uint16_t *v, size_t n,
+	unsigned m, unsigned e, unsigned f, unsigned char *out)
+{
+    unsigned big = 1 << m;
+    unsigned huge = 1 << (m + 8);
+    size_t j = 0;
+    if (f == 0) {
+	*out++ = e - 1;
+	for (size_t i = 0; i < n; i++) {
+	    if (v[i] < big)
+		continue;
+	    out[2*j-j%2+0] = v[i] >> m;
+	    out[2*j-j%2+2] = i;
+	    j++;
+	}
+    }
+    else {
+	*out++ = (e + f - 1) | 0x80;
+	for (size_t i = 0; i < n; i++) {
+	    if (v[i] < big)
+		continue;
+	    if (v[i] < huge) {
+		out[2*j-j%2+0] = i;
+		out[2*j-j%2+2] = v[i] >> m;
+		j++;
+	    }
+	    else if (j % 2) {
+		j--;
+		out[2*j+4] = out[2*j+0];
+		out[2*j+6] = out[2*j+2];
+		out[2*j+0] = out[2*j+1] = i;
+		Bstore16le(&out[2*j+2], v[i]);
+		j += 3;
+	    }
+	    else {
+		out[2*j+0] = out[2*j+1] = i;
+		Bstore16le(&out[2*j+2], v[i]);
+		j += 2;
+	    }
+	}
+    }
+    if (j % 2) {
+	j--;
+	out[2*j+1] = out[2*j+2];
+	j++;
+    }
+    out += 2 * j;
+    return out;
+}
+
+static unsigned char *enc64(const uint16_t *v, unsigned char *out, struct tile *t, struct tile *tend)
+{
+    do {
+	unsigned e = t->bp.e, f = t->bp.f;
+	unsigned patchflag = (e + f) ? 0x80 : 0;
+	switch (t->span << 5 | t->bp.m) {
+#define CASE64(M)						\
+	case 1 << 5 | M:					\
+	    *out++ = 0 << 5 | M | patchflag;			\
+	    bitpack16_##M##x64(v, out);				\
+	    out += M * 64 / 8;					\
+	    if (patchflag)					\
+		out = encpatch(v, 64, M, e, f, out);		\
+	    v += 64;						\
+	    break
+#define CASE128(M)						\
+	case 2 << 5 | M:					\
+	    *out++ = 1 << 5 | M | patchflag;			\
+	    bitpack16_##M##x128(v, out);			\
+	    out += M * 128 / 8;					\
+	    if (patchflag)					\
+		out = encpatch(v, 128, M, e, f, out);		\
+	    v += 128;						\
+	    break
+#define CASE256(M)						\
+	case 4 << 5 | M:					\
+	    *out++ = 2 << 5 | M | patchflag;			\
+	    bitpack16_##M##x256(v, out);			\
+	    out += M * 256 / 8;					\
+	    if (patchflag) 					\
+		out = encpatch(v, 256, M, e, f, out);		\
+	    v += 256;						\
+	    break
+#define CASE(M) CASE64(M); CASE128(M); CASE256(M)
+	CASE(0);
+	CASE(1);
+	CASE(2);
+	CASE(3);
+	CASE(4);
+	CASE(5);
+	CASE(6);
+	CASE(7);
+	CASE(8);
+	CASE(9);
+	CASE(10);
+	CASE(11);
+	CASE(12);
+	CASE(13);
+	CASE(14);
+	CASE(15);
+	CASE(16);
+	default: assert(0);
+	}
+    } while (++t < tend);
+    return out;
+}
+
+#include <stdlib.h>
+#define xmalloc malloc
+
+size_t pfor16enc64(uint16_t *v, size_t n, void *out)
+{
+    unsigned char *oend;
+    size_t nb = n / 64;
+    if (n > (64<<10)) {
+	struct tile *tt = xmalloc(nb * sizeof(struct tile));
+	struct tile *t = enctile(v, n, tt);
+	oend = enc64(v, out, t, tt + nb);
+	free(tt);
+    }
+    else {
+	struct tile tt[nb];
+	struct tile *t = enctile(v, n, tt);
+	oend = enc64(v, out, t, tt + nb);
+    }
+    return oend - (unsigned char *) out;
+}
