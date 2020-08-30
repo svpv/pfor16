@@ -264,6 +264,11 @@ static unsigned char *encpatch(const uint16_t *v, size_t n,
 	    out[2*j-j%2+2] = i;
 	    j++;
 	}
+	if (j % 2) {
+	    j--;
+	    out[2*j+1] = out[2*j+2];
+	    j++;
+	}
     }
     else {
 	*out++ = (e + f - 1) | 0x80;
@@ -289,11 +294,12 @@ static unsigned char *encpatch(const uint16_t *v, size_t n,
 		j += 2;
 	    }
 	}
-    }
-    if (j % 2) {
-	j--;
-	out[2*j+1] = out[2*j+2];
-	j++;
+	if (j % 2) {
+	    j--;
+	    out[2*j+1] = out[2*j+0];
+	    out[2*j+0] = out[2*j+2];
+	    j++;
+	}
     }
     out += 2 * j;
     return out;
