@@ -83,9 +83,28 @@ static inline unsigned patchcost(unsigned e, unsigned f)
 // Optimal encoding parameters for a block.
 struct bp {
     uint8_t m;
-    uint8_t e;
+    uint8_t e0;
+    uint8_t e1;
     uint8_t f;
 };
+
+static inline unsigned patch64cost(unsigned e0, unsigned e1, unsigned f)
+{
+    unsigned tco = f ? Mispredict + 20 : 0;
+    tco += e0 ? 21 * e0 + Mispredict : Mispredict;
+    tco += e1 ? 23 * e1 + Mispredict : Mispredict;
+    return tco;
+}
+
+#define patch128cost patch64cost
+
+static inline unsigned patch256cost(unsigned e0, unsigned e1, unsigned f)
+{
+    unsigned tco = f ? Mispredict + 20 : 0;
+    tco += e0 ? 20 * e0 + Mispredict : Mispredict;
+    tco += e1 ? 22 * e1 + Mispredict : Mispredict;
+    return tco;
+}
 
 // Find the optimal parameters to encode a block of 64 integers, given
 // its cumulative histogram.  Returns RD-weighted TCO.
@@ -99,19 +118,25 @@ static unsigned rdopt64(const uint16_t h[32], struct bp *bp)
     unsigned cost0 = BlockTax + simd64cost[m];
     unsigned tco0 = LenRD * len0 + cost0;
     bp->m = m;
-    bp->e = bp->f = 0;
+    bp->e0 = bp->e1 = bp->f = 0;
     // Try smaller m with patching.
-    while (m) {
-	unsigned e = h[m], f = h[m+8];
+    while (1) {
+	unsigned e0 = h[m], e1 = h[m+6], f = h[m+10];
+	if (f > 1)
+	    break;
+	e0 -= e1, e1 -= f;
+	e1 += e0 & 1, e0 &= ~1;
+	if (e0 > 30 || e1 > 15)
+	    break;
 	m--;
-	unsigned len = 1 + m * (64 / 8) + 1 + patchlen(e, f);
-	unsigned cost = BlockTax + simd64cost[m] + PatchTax + patchcost(e, f);
+	unsigned len = 1 + m * (64 / 8) + 1 + e0 / 2 * 3 + e1 * 2;
+	unsigned cost = BlockTax + simd64cost[m] + PatchTax + patch64cost(e0, e1, f);
 	unsigned tco = LenRD * len + cost;
 	if (tco0 > tco) {
 	    tco0 = tco;
 	    len0 = len, cost0 = cost;
 	    bp->m = m;
-	    bp->e = e, bp->f = f;
+	    bp->e0 = e0, bp->e1 = e1, bp->f = f;
 	}
     }
     return tco0;
@@ -132,19 +157,25 @@ static unsigned rdopt128(const uint16_t h0[32], const uint16_t h1[32], struct bp
     unsigned cost0 = BlockTax + simd128cost[m];
     unsigned tco0 = LenRD * len0 + cost0;
     bp->m = m;
-    bp->e = bp->f = 0;
+    bp->e0 = bp->e1 = bp->f = 0;
     // Try smaller m with patching.
-    while (m) {
-	unsigned e = h[m], f = h[m+8];
+    while (1) {
+	unsigned e0 = h[m], e1 = h[m+5], f = h[m+9];
+	if (f > 1)
+	    break;
+	e0 -= e1, e1 -= f;
+	e1 += e0 & 1, e0 &= ~1;
+	if (e0 > 30 || e1 > 15)
+	    break;
 	m--;
-	unsigned len = 1 + m * (128 / 8) + 1 + patchlen(e, f);
-	unsigned cost = BlockTax + simd128cost[m] + PatchTax + patchcost(e, f);
+	unsigned len = 1 + m * (128 / 8) + 1 + e0 / 2 * 3 + e1 * 2;
+	unsigned cost = BlockTax + simd128cost[m] + PatchTax + patch128cost(e0, e1, f);
 	unsigned tco = LenRD * len + cost;
 	if (tco0 > tco) {
 	    tco0 = tco;
 	    len0 = len, cost0 = cost;
 	    bp->m = m;
-	    bp->e = e, bp->f = f;
+	    bp->e0 = e0, bp->e1 = e1, bp->f = f;
 	}
     }
     return tco0;
@@ -166,19 +197,25 @@ static unsigned rdopt256(const uint16_t h0[32], const uint16_t h1[32],
     unsigned cost0 = BlockTax + simd256cost[m];
     unsigned tco0 = LenRD * len0 + cost0;
     bp->m = m;
-    bp->e = bp->f = 0;
+    bp->e0 = bp->e1 = bp->f = 0;
     // Try smaller m with patching.
-    while (m) {
-	unsigned e = h[m], f = h[m+8];
+    while (1) {
+	unsigned e0 = h[m], e1 = h[m+4], f = h[m+8];
+	if (f > 1)
+	    break;
+	e0 -= e1, e1 -= f;
+	e1 += e0 & 1, e0 &= ~1;
+	if (e0 > 30 || e1 > 15)
+	    break;
 	m--;
-	unsigned len = 1 + m * (256 / 8) + 1 + patchlen(e, f);
-	unsigned cost = BlockTax + simd256cost[m] + PatchTax + patchcost(e, f);
+	unsigned len = 1 + m * (256 / 8) + 1 + e0 / 2 * 3 + e1 * 2;
+	unsigned cost = BlockTax + simd256cost[m] + PatchTax + patch256cost(e0, e1, f);
 	unsigned tco = LenRD * len + cost;
 	if (tco0 > tco) {
 	    tco0 = tco;
 	    len0 = len, cost0 = cost;
 	    bp->m = m;
-	    bp->e = e, bp->f = f;
+	    bp->e0 = e0, bp->e1 = e1, bp->f = f;
 	}
     }
     return tco0;
@@ -249,113 +286,127 @@ static struct tile *enctile(const uint16_t *v, size_t n, struct tile *tt)
 
 #include "bitpack16.h"
 
-static unsigned char *encpatch(const uint16_t *v, size_t n,
-	unsigned m, unsigned e, unsigned f, unsigned char *out)
+static unsigned ffind(const uint16_t *v, int m)
 {
-    unsigned big = 1 << m;
-    unsigned huge = 1 << (m + 8);
-    size_t j = 0;
-    if (f == 0) {
-	*out++ = e - 1;
-	for (size_t i = 0; i < n; i++) {
-	    if (v[i] < big)
-		continue;
-	    out[2*j-j%2+0] = v[i] >> m;
-	    out[2*j-j%2+2] = i;
-	    j++;
+    unsigned i = 0;
+    while (1) {
+	if (v[i+0] >= (1<<m)) return i+0;
+	if (v[i+1] >= (1<<m)) return i+1;
+	if (v[i+2] >= (1<<m)) return i+2;
+	i += 3;
+    }
+}
+
+static unsigned char *encpatch(const uint16_t *v, int nlog, int m, unsigned e0, unsigned e1, unsigned char *out)
+{
+    *out++ = e0 / 2  | e1 << 4;
+    unsigned char *s0 = out;
+    unsigned char *s1 = out + e0 / 2 * 3;
+    unsigned n0 = 0;
+    uint32_t u24 = 0;
+    for (unsigned i = 0; i < (1U << nlog); i++) {
+	if (v[i] < (1U << m) || v[i] >= (1U << (m + 16 - nlog)))
+	    continue;
+	if (v[i] >= (1U << (m + 12 - nlog))) {
+	    uint16_t w = i | v[i] >> m << nlog;
+	    Bstore16le(s1, w);
+	    s1 += 2;
 	}
-	if (j % 2) {
-	    j--;
-	    out[2*j+1] = out[2*j+2];
-	    j++;
+	else if ((n0 & 1) == 0) {
+	    u24 = i | v[i] >> m << nlog;
+	    n0++;
+	}
+	else {
+	    u24 |= i << (24 - nlog);
+	    u24 |= v[i] >> m << 12;
+	    s0[0] = u24;
+	    Bstore16le(s0 + 1, u24 >> 8);
+	    s0 += 3;
+	    n0++;
 	}
     }
-    else {
-	*out++ = (e + f - 1) | 0x80;
-	for (size_t i = 0; i < n; i++) {
-	    if (v[i] < big)
-		continue;
-	    if (v[i] < huge) {
-		out[2*j-j%2+0] = i;
-		out[2*j-j%2+2] = v[i] >> m;
-		j++;
-	    }
-	    else if (j % 2) {
-		j--;
-		out[2*j+4] = out[2*j+0];
-		out[2*j+6] = out[2*j+2];
-		out[2*j+0] = out[2*j+1] = i;
-		Bstore16le(&out[2*j+2], v[i]);
-		j += 3;
-	    }
-	    else {
-		out[2*j+0] = out[2*j+1] = i;
-		Bstore16le(&out[2*j+2], v[i]);
-		j += 2;
-	    }
-	}
-	if (j % 2) {
-	    j--;
-	    out[2*j+1] = out[2*j+0];
-	    out[2*j+0] = out[2*j+2];
-	    j++;
-	}
+    if (n0 & 1) {
+	Bstore16le(s1, u24);
+	s1 += 2;
+	n0--;
     }
-    out += 2 * j;
-    return out;
+    assert(n0 == e0);
+    return s1;
 }
 
 static unsigned char *enc64(const uint16_t *v, unsigned char *out, struct tile *t, struct tile *tend)
 {
     do {
-	unsigned e = t->bp.e, f = t->bp.f;
-	unsigned patchflag = (e + f) ? 0x80 : 0;
+	unsigned e0 = t->bp.e0, e1 = t->bp.e1;
+	unsigned fflag = t->bp.f ? 0x80 : 0;
+	unsigned pflag = (e0 + e1) ? 0x40 : 0;
 	switch (t->span << 5 | t->bp.m) {
-#define CASE64(M)						\
+#define Case64(M)						\
 	case 1 << 5 | M:					\
-	    *out++ = 0 << 5 | M | patchflag;			\
+	    *out++ = (3 * M + 0) | fflag | pflag;		\
 	    bitpack16_##M##x64(v, out);				\
 	    out += M * 64 / 8;					\
-	    if (patchflag)					\
-		out = encpatch(v, 64, M, e, f, out);		\
+	    if (fflag) {					\
+		unsigned i = ffind(v, M + 10);			\
+		assert(i < 64);					\
+		*out = i;					\
+		Bstore16le(out + 1, v[i]);			\
+		out += 3;					\
+	    }							\
+	    if (pflag)						\
+		out = encpatch(v, 6, M, e0, e1, out);		\
 	    v += 64;						\
 	    break
-#define CASE128(M)						\
+#define Case128(M)						\
 	case 2 << 5 | M:					\
-	    *out++ = 1 << 5 | M | patchflag;			\
+	    *out++ = (3 * M + 1) | fflag | pflag;		\
 	    bitpack16_##M##x128(v, out);			\
 	    out += M * 128 / 8;					\
-	    if (patchflag)					\
-		out = encpatch(v, 128, M, e, f, out);		\
+	    if (fflag) {					\
+		unsigned i = ffind(v, M + 9);			\
+		assert(i < 128);				\
+		*out = i;					\
+		Bstore16le(out + 1, v[i]);			\
+		out += 3;					\
+	    }							\
+	    if (pflag)						\
+		out = encpatch(v, 7, M, e0, e1, out);		\
 	    v += 128;						\
 	    break
-#define CASE256(M)						\
+#define Case256(M)						\
 	case 4 << 5 | M:					\
-	    *out++ = 2 << 5 | M | patchflag;			\
+	    *out++ = (3 * M + 2) | fflag | pflag;		\
 	    bitpack16_##M##x256(v, out);			\
 	    out += M * 256 / 8;					\
-	    if (patchflag) 					\
-		out = encpatch(v, 256, M, e, f, out);		\
+	    if (fflag) {					\
+		unsigned i = ffind(v, M + 8);			\
+		assert(i < 256);				\
+		*out = i;					\
+		Bstore16le(out + 1, v[i]);			\
+		out += 3;					\
+	    }							\
+	    if (pflag)						\
+		out = encpatch(v, 8, M, e0, e1, out);		\
 	    v += 256;						\
 	    break
-#define CASE(M) CASE64(M); CASE128(M); CASE256(M)
-	CASE(0);
-	CASE(1);
-	CASE(2);
-	CASE(3);
-	CASE(4);
-	CASE(5);
-	CASE(6);
-	CASE(7);
-	CASE(8);
-	CASE(9);
-	CASE(10);
-	CASE(11);
-	CASE(12);
-	CASE(13);
-	CASE(14);
-	CASE(15);
-	CASE(16);
+#define Case(M) Case64(M); Case128(M); Case256(M)
+	Case(0);
+	Case(1);
+	Case(2);
+	Case(3);
+	Case(4);
+	Case(5);
+	Case(6);
+	Case(7);
+	Case(8);
+	Case(9);
+	Case(10);
+	Case(11);
+	Case(12);
+	Case(13);
+	Case(14);
+	Case(15);
+	Case(16);
 	default: assert(0);
 	}
     } while (++t < tend);
