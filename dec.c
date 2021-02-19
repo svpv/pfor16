@@ -214,7 +214,13 @@ const unsigned char *dec64(const unsigned char *src, size_t len, uint16_t *v, si
 	    src += 16 * 256 / 8;
 	    v += 256;
 	    break;
-	default: assert(0);
+
+	case 59:
+	case 60:
+	case 61:
+	case 62:
+	case 63:
+	    return NULL;
 	}
     } while (v <= last64);
     return src;
