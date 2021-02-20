@@ -58,20 +58,6 @@ static const uint16_t simd256cost[17] = {
 // Branch misprediction penalty.
 #define Mispredict 66
 
-// The size of a patch body, given e exceptions, f of them fused.
-static inline unsigned patchlen(unsigned e, unsigned f)
-{
-    return 2 * e + 2 * f;
-}
-
-// The decoding cost of a patch.
-static inline unsigned patchcost(unsigned e, unsigned f)
-{
-    if (f)
-	return 23 * (e - f) + (20 + Mispredict) * f;
-    return 21 * e;
-}
-
 // The rate-distortion slope: we trade 1-byte reduction in size for 3.2
 // extra CPU cycles during decoding.
 #define LenRD 32
@@ -87,6 +73,18 @@ struct bp {
     uint8_t e1;
     uint8_t f;
 };
+
+static inline unsigned patchlen(unsigned m, unsigned e0, unsigned e1, unsigned f, unsigned nlog)
+{
+    unsigned len = e0 * 3 + e1 * 2;
+    len += (len > 0); // pctl
+    len += f * (3 - (m >= nlog + 4));
+    return len;
+}
+
+#define patch64len( m, e0, e1, f) patchlen(m, e0, e1, f, 6)
+#define patch128len(m, e0, e1, f) patchlen(m, e0, e1, f, 7)
+#define patch256len(m, e0, e1, f) patchlen(m, e0, e1, f, 8)
 
 static inline unsigned patch64cost(unsigned e0, unsigned e1, unsigned f)
 {
@@ -131,7 +129,7 @@ static unsigned rdopt64(const uint16_t h[32], struct bp *bp)
 	if (m >= 10)
 	    f = e1, e1 = 0;
 	m--;
-	unsigned len = 1 + m * (64 / 8) + 1 + e0 / 2 * 3 + e1 * 2;
+	unsigned len = 1 + m * (64 / 8) + patch64len(m, e0, e1, f);
 	unsigned cost = BlockTax + simd64cost[m] + PatchTax + patch64cost(e0, e1, f);
 	unsigned tco = LenRD * len + cost;
 	if (tco0 > tco) {
@@ -172,7 +170,7 @@ static unsigned rdopt128(const uint16_t h0[32], const uint16_t h1[32], struct bp
 	if (m >= 11)
 	    f = e1, e1 = 0;
 	m--;
-	unsigned len = 1 + m * (128 / 8) + 1 + e0 / 2 * 3 + e1 * 2;
+	unsigned len = 1 + m * (128 / 8) + patch128len(m, e0, e1, f);
 	unsigned cost = BlockTax + simd128cost[m] + PatchTax + patch128cost(e0, e1, f);
 	unsigned tco = LenRD * len + cost;
 	if (tco0 > tco) {
@@ -214,7 +212,7 @@ static unsigned rdopt256(const uint16_t h0[32], const uint16_t h1[32],
 	if (m >= 12)
 	    f = e1, e1 = 0;
 	m--;
-	unsigned len = 1 + m * (256 / 8) + 1 + e0 / 2 * 3 + e1 * 2;
+	unsigned len = 1 + m * (256 / 8) + patch256len(m, e0, e1, f);
 	unsigned cost = BlockTax + simd256cost[m] + PatchTax + patch256cost(e0, e1, f);
 	unsigned tco = LenRD * len + cost;
 	if (tco0 > tco) {
