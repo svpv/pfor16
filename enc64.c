@@ -125,9 +125,11 @@ static unsigned rdopt64(const uint16_t h[32], struct bp *bp)
 	if (f > 1)
 	    break;
 	e0 -= e1, e1 -= f;
-	e1 += e0 & 1, e0 &= ~1;
-	if (e0 > 30 || e1 > 15)
+	e1 += e0 & 1, e0 /= 2;
+	if (e0 > 15 || e1 > 15)
 	    break;
+	if (m >= 10)
+	    f = e1, e1 = 0;
 	m--;
 	unsigned len = 1 + m * (64 / 8) + 1 + e0 / 2 * 3 + e1 * 2;
 	unsigned cost = BlockTax + simd64cost[m] + PatchTax + patch64cost(e0, e1, f);
@@ -164,9 +166,11 @@ static unsigned rdopt128(const uint16_t h0[32], const uint16_t h1[32], struct bp
 	if (f > 1)
 	    break;
 	e0 -= e1, e1 -= f;
-	e1 += e0 & 1, e0 &= ~1;
-	if (e0 > 30 || e1 > 15)
+	e1 += e0 & 1, e0 /= 2;
+	if (e0 > 15 || e1 > 15)
 	    break;
+	if (m >= 11)
+	    f = e1, e1 = 0;
 	m--;
 	unsigned len = 1 + m * (128 / 8) + 1 + e0 / 2 * 3 + e1 * 2;
 	unsigned cost = BlockTax + simd128cost[m] + PatchTax + patch128cost(e0, e1, f);
@@ -204,9 +208,11 @@ static unsigned rdopt256(const uint16_t h0[32], const uint16_t h1[32],
 	if (f > 1)
 	    break;
 	e0 -= e1, e1 -= f;
-	e1 += e0 & 1, e0 &= ~1;
-	if (e0 > 30 || e1 > 15)
+	e1 += e0 & 1, e0 /= 2;
+	if (e0 > 23 || e1 > 31)
 	    break;
+	if (m >= 12)
+	    f = e1, e1 = 0;
 	m--;
 	unsigned len = 1 + m * (256 / 8) + 1 + e0 / 2 * 3 + e1 * 2;
 	unsigned cost = BlockTax + simd256cost[m] + PatchTax + patch256cost(e0, e1, f);
@@ -299,9 +305,8 @@ static unsigned ffind(const uint16_t *v, int m)
 
 static unsigned char *encpatch(const uint16_t *v, int nlog, int m, unsigned e0, unsigned e1, unsigned char *out)
 {
-    *out++ = e0 / 2  | e1 << 4;
     unsigned char *s0 = out;
-    unsigned char *s1 = out + e0 / 2 * 3;
+    unsigned char *s1 = out + e0 * 3;
     unsigned n0 = 0;
     uint32_t u24 = 0;
     for (unsigned i = 0; i < (1U << nlog); i++) {
@@ -330,53 +335,86 @@ static unsigned char *encpatch(const uint16_t *v, int nlog, int m, unsigned e0, 
 	s1 += 2;
 	n0--;
     }
-    assert(n0 == e0);
+    assert(n0 == 2 * e0);
     return s1;
 }
 
 static unsigned char *enc64(const uint16_t *v, unsigned char *out, struct tile *t, struct tile *tend)
 {
     do {
+	if (t->bp.m == 16) {
+	    if (t->span == 1) {
+		*out++ = 56;
+		bitpack16_16x64(v, out);
+	    }
+	    else if (t->span == 2) {
+		*out++ = 57;
+		bitpack16_16x128(v, out);
+	    }
+	    else {
+		*out++ = 58;
+		bitpack16_16x256(v, out);
+	    }
+	    v += 64 * t->span;
+	    out += 128 * t->span;
+	    continue;
+	}
 	unsigned e0 = t->bp.e0, e1 = t->bp.e1;
-	unsigned fflag = t->bp.f ? 0x80 : 0;
-	unsigned pflag = (e0 + e1) ? 0x40 : 0;
-	switch (t->span << 5 | t->bp.m) {
-#define Case64(M)						\
-	case 1 << 5 | M:					\
-	    *out++ = (3 * M + 0) | fflag | pflag;		\
-	    bitpack16_##M##x64(v, out);				\
-	    out += M * 64 / 8;					\
+	unsigned fflag = t->bp.f, pflag = (e0 + e1) ? 1 : 0;
+	switch (log2i(t->span) << 4 | t->bp.m) {
+#define CaseC1F3(C, M, N, SpanLog)				\
+	case SpanLog << 4 | M:					\
+	    *out++ = C << 2 | fflag << 1 | pflag;		\
+	    bitpack16_##M##x##N(v, out);			\
+	    out += M * N / 8;					\
 	    if (fflag) {					\
-		unsigned i = ffind(v, M + 10);			\
-		assert(i < 64);					\
+		unsigned i = ffind(v, M + 10 - SpanLog);	\
+		assert(i < N);					\
 		*out = i;					\
 		Bstore16le(out + 1, v[i]);			\
 		out += 3;					\
 	    }							\
-	    if (pflag)						\
-		out = encpatch(v, 6, M, e0, e1, out);		\
-	    v += 64;						\
+	    if (pflag) {					\
+		*out++ = e0 | e1 << 4;				\
+		out = encpatch(v, 6 + SpanLog, M, e0, e1, out); \
+	    }							\
+	    v += N;						\
 	    break
-#define Case128(M)						\
-	case 2 << 5 | M:					\
-	    *out++ = (3 * M + 1) | fflag | pflag;		\
-	    bitpack16_##M##x128(v, out);			\
-	    out += M * 128 / 8;					\
+#define CaseC1F0(C, M, N, SpanLog)				\
+	case SpanLog << 4 | M:					\
+	    *out++ = C << 2 | pflag;				\
+	    bitpack16_##M##x##N(v, out);			\
+	    out += M * N / 8;					\
+	    if (pflag) {					\
+		*out++ = e0 | e1 << 4;				\
+		out = encpatch(v, 6 + SpanLog, M, e0, e1, out); \
+	    }							\
+	    v += N;						\
+	    break
+#define CaseC1F2(C, M, N, SpanLog)				\
+	case SpanLog << 4 | M:					\
+	    *out++ = C << 2 | fflag << 1 | pflag;		\
+	    bitpack16_##M##x##N(v, out);			\
+	    out += M * N / 8;					\
 	    if (fflag) {					\
-		unsigned i = ffind(v, M + 9);			\
-		assert(i < 128);				\
+		unsigned i = ffind(v, M + 10 - SpanLog);	\
+		assert(i < N);					\
 		*out = i;					\
 		Bstore16le(out + 1, v[i]);			\
 		out += 3;					\
 	    }							\
-	    if (pflag)						\
-		out = encpatch(v, 7, M, e0, e1, out);		\
-	    v += 128;						\
+	    if (pflag) {					\
+		*out++ = e0;					\
+		out = encpatch(v, 6 + SpanLog, M, e0, 0, out);	\
+	    }							\
+	    v += N;						\
 	    break
-#define Case256(M)						\
-	case 4 << 5 | M:					\
-	    *out++ = (3 * M + 2) | fflag | pflag;		\
-	    bitpack16_##M##x256(v, out);			\
+
+#define CaseC2F3_256(C, M)					\
+	case 2 << 4 | M:					\
+	    pflag = pflag ? (e0 >> 3) + 1 : pflag;		\
+	    *out++ = C << 2 | fflag << 2 | pflag;		\
+	    bitpack16_##M##x##256(v, out);			\
 	    out += M * 256 / 8;					\
 	    if (fflag) {					\
 		unsigned i = ffind(v, M + 8);			\
@@ -385,29 +423,62 @@ static unsigned char *enc64(const uint16_t *v, unsigned char *out, struct tile *
 		Bstore16le(out + 1, v[i]);			\
 		out += 3;					\
 	    }							\
-	    if (pflag)						\
+	    if (pflag) {					\
+		*out++ = e0 << 5 | e1;				\
 		out = encpatch(v, 8, M, e0, e1, out);		\
+	    }							\
 	    v += 256;						\
 	    break
-#define Case(M) Case64(M); Case128(M); Case256(M)
-	Case(0);
-	Case(1);
-	Case(2);
-	Case(3);
-	Case(4);
-	Case(5);
-	Case(6);
-	Case(7);
-	Case(8);
-	Case(9);
-	Case(10);
-	Case(11);
-	Case(12);
-	Case(13);
-	Case(14);
-	Case(15);
-	Case(16);
-	default: assert(0);
+#define CaseC1F0_256(C, M)					\
+	case 2 << 4 | M:					\
+	    pflag = pflag ? (e0 >> 3) + 1 : pflag;		\
+	    *out++ = C << 2 | pflag;				\
+	    bitpack16_##M##x##256(v, out);			\
+	    out += M * 256 / 8;					\
+	    if (pflag) {					\
+		*out++ = e0 << 5 | e1;				\
+		out = encpatch(v, 8, M, e0, e1, out);		\
+	    }							\
+	    v += 256;						\
+	    break
+#define CaseC1F2_256(C, M)					\
+	case 2 << 4 | M:					\
+	    *out++ = C << 2 | fflag << 1 | pflag;		\
+	    bitpack16_##M##x##256(v, out);			\
+	    out += M * 256 / 8;					\
+	    if (fflag) {					\
+		unsigned i = ffind(v, M + 8);			\
+		assert(i < 256);				\
+		*out = i;					\
+		Bstore16le(out + 1, v[i]);			\
+		out += 3;					\
+	    }							\
+	    if (pflag) {					\
+		*out++ = e0;					\
+		out = encpatch(v, 8, M, e0, 0, out);		\
+	    }							\
+	    v += 256;						\
+	    break
+
+	CaseC1F3( 0,  0, 64, 0); CaseC1F3( 1,  0, 128, 1); CaseC2F3_256( 2,  0);
+	CaseC1F3( 4,  1, 64, 0); CaseC1F3( 5,  1, 128, 1); CaseC2F3_256( 6,  1);
+	CaseC1F3( 8,  2, 64, 0); CaseC1F3( 9,  2, 128, 1); CaseC2F3_256(10,  2);
+	CaseC1F3(12,  3, 64, 0); CaseC1F3(13,  3, 128, 1); CaseC2F3_256(14,  3);
+	CaseC1F3(16,  4, 64, 0); CaseC1F3(17,  4, 128, 1); CaseC2F3_256(18,  4);
+	CaseC1F3(20,  5, 64, 0); CaseC1F3(21,  5, 128, 1); CaseC2F3_256(22,  5);
+	CaseC1F0(24,  6, 64, 0); CaseC1F3(25,  6, 128, 1); CaseC2F3_256(26,  6);
+	CaseC1F0(28,  7, 64, 0); CaseC1F0(29,  7, 128, 1); CaseC2F3_256(30,  7);
+	CaseC1F0(32,  8, 64, 0); CaseC1F0(33,  8, 128, 1); CaseC1F0_256(34,  8);
+	CaseC1F0(35,  9, 64, 0); CaseC1F0(36,  9, 128, 1); CaseC1F0_256(37,  9);
+	CaseC1F2(38, 10, 64, 0); CaseC1F0(39, 10, 128, 1); CaseC1F0_256(40, 10);
+	CaseC1F2(41, 11, 64, 0); CaseC1F2(42, 11, 128, 1); CaseC1F0_256(43, 11);
+	CaseC1F2(44, 12, 64, 0); CaseC1F2(45, 12, 128, 1); CaseC1F2_256(46, 12);
+	CaseC1F2(47, 13, 64, 0); CaseC1F2(48, 13, 128, 1); CaseC1F2_256(49, 13);
+	CaseC1F2(50, 14, 64, 0); CaseC1F2(51, 14, 128, 1); CaseC1F2_256(52, 14);
+	CaseC1F2(53, 15, 64, 0); CaseC1F2(54, 15, 128, 1); CaseC1F2_256(55, 15);
+
+	default:
+	    assert(0);
 	}
     } while (++t < tend);
     return out;
