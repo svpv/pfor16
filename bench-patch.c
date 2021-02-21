@@ -138,6 +138,10 @@ static inline uint32_t rand32(void)
 #define Patch patch256
 #endif
 
+#ifndef AGGR
+#define AGGR 0
+#endif
+
 #ifndef __clang__
 __attribute__((noipa))
 #endif
@@ -156,21 +160,30 @@ void bench(void)
     memset(t, 0, sizeof t);
     memset(n, 0, sizeof n);
 
+    uint64_t tsum = 0;
+    if (AGGR)
+	tsum = rdtsc();
     for (int i = 0; i < (1<<28); i++) {
-	uint32_t e0 = rand32() % 32;
-	uint32_t e1 = rand32() % 32;
-	uint64_t t0 = rdtsc();
+	uint32_t r = rand32();
+	uint32_t e0 = (r >> 0) % 32;
+	uint32_t e1 = (r >> 9) % 32;
+	uint64_t t0, t1, t2;
+	if (!AGGR) t0 = rdtsc();
 	Patch(src, v, M, e0, 0);
-	uint64_t t1 = rdtsc();
+	if (!AGGR) t1 = rdtsc();
 	Patch(src, v, M, 0, e1);
-	uint64_t t2 = rdtsc();
-	t[0][e0] += t1 - t0; n[0][e0]++;
-	t[1][e1] += t2 - t1; n[1][e1]++;
+	if (!AGGR) t2 = rdtsc();
+	if (!AGGR) t[0][e0] += t1 - t0, n[0][e0]++;
+	if (!AGGR) t[1][e1] += t2 - t1, n[1][e1]++;
+	if (!AGGR) tsum += t2 - t0;
     }
-    for (int i = 0; i < 32; i++)
+    if (AGGR)
+	tsum = rdtsc() - tsum;
+    if (!AGGR) for (int i = 0; i < 32; i++)
 	fprintf(stderr, "e0=%d %.1f cycles\n", i, (double) t[0][i] / n[0][i]);
-    for (int i = 0; i < 32; i++)
+    if (!AGGR) for (int i = 0; i < 32; i++)
 	fprintf(stderr, "e1=%d %.1f cycles\n", i, (double) t[1][i] / n[1][i]);
+    fprintf(stderr, "avg %.1f cycles\n", (double) tsum / (2 * (1<<28)));
 }
 
 int main()
