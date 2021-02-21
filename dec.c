@@ -77,6 +77,7 @@ static inline const unsigned char *patch256(const unsigned char *src, uint16_t *
     return src;
 }
 
+__attribute__((flatten))
 const unsigned char *dec64(const unsigned char *src, size_t len, uint16_t *v, size_t n)
 {
     uint16_t *last64 = v + n - 64;
