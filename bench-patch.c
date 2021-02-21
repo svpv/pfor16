@@ -63,6 +63,7 @@ static inline const unsigned char *patch64(const unsigned char *src, uint16_t *v
 	v[i0] += x0 << m;
 	v[i1] += x1 << m;
     }
+    asm(""); // to align the loop, gcc bug
     while (e1--) {
 	unsigned w = Bload16le(src);
 	unsigned i = w & Mask(6);
@@ -87,6 +88,7 @@ static inline const unsigned char *patch128(const unsigned char *src, uint16_t *
 	v[i0] += x0 << m;
 	v[i1] += x1 << m;
     }
+    asm(""); // to align the loop, gcc bug
     while (e1--) {
 	unsigned w = Bload16le(src);
 	unsigned i = w & Mask(7);
@@ -111,6 +113,7 @@ static inline const unsigned char *patch256(const unsigned char *src, uint16_t *
 	v[i0] += x0 << m;
 	v[i1] += x1 << m;
     }
+    asm(""); // to align the loop, gcc bug
     while (e1--) {
 	unsigned i = src[0];
 	unsigned x = src[1];
