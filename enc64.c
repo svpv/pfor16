@@ -56,15 +56,14 @@ static const uint16_t simd256cost[17] = {
 };
 
 // Branch misprediction penalty.
-#define Mispredict 66
+#define Mispredict 150
+
+// Irreducible costs of decoding each block.
+#define BlockTax 200
 
 // The rate-distortion slope: we trade 1-byte reduction in size for 3.2
 // extra CPU cycles during decoding.
 #define LenRD 32
-
-// Irreducible costs of decoding each block and apply each patch.
-#define BlockTax 20
-#define PatchTax (30 + Mispredict)
 
 // Optimal encoding parameters for a block.
 struct bp {
@@ -86,22 +85,57 @@ static inline unsigned patchlen(unsigned m, unsigned e0, unsigned e1, unsigned f
 #define patch128len(m, e0, e1, f) patchlen(m, e0, e1, f, 7)
 #define patch256len(m, e0, e1, f) patchlen(m, e0, e1, f, 8)
 
-static inline unsigned patch64cost(unsigned e0, unsigned e1, unsigned f)
+static inline unsigned patchcost(unsigned m, unsigned e0, unsigned e1, unsigned f, unsigned nlog)
 {
-    unsigned tco = f ? Mispredict + 20 : 0;
-    tco += e0 ? 21 * e0 + Mispredict : Mispredict;
-    tco += e1 ? 23 * e1 + Mispredict : Mispredict;
-    return tco;
+    unsigned cost = 0;
+    if (m >= nlog + 4) { // no e1, odd e0 in f
+	cost += Mispredict * 51/100 + f * 25;
+	if (e0 == 0)
+	    cost += Mispredict * 95/100; // no pctl
+	else {
+	    cost += Mispredict * 5/100 + 20; // pctl
+	    cost += Mispredict + e0 * 54; // patch e0
+	}
+	return cost;
+    }
+    if (m < nlog) // a clobber entry, unlikely
+	cost += f ? Mispredict * 95/100 + 22 : Mispredict * 5/100;
+    if (e0 + e1 == 0)
+	cost += Mispredict * 97/100; // no pctl
+    else {
+	cost += Mispredict * 3/100 + 25; // pctl
+	cost += Mispredict + e0 * 54; // patch e0
+	cost += Mispredict + e1 * 25; // patch e1
+    }
+    return cost;
 }
 
-#define patch128cost patch64cost
+#define patch64cost( m, e0, e1, f) patchcost(m, e0, e1, f, 6)
+#define patch128cost(m, e0, e1, f) patchcost(m, e0, e1, f, 7)
 
-static inline unsigned patch256cost(unsigned e0, unsigned e1, unsigned f)
+static inline unsigned patch256cost(unsigned m, unsigned e0, unsigned e1, unsigned f)
 {
-    unsigned tco = f ? Mispredict + 20 : 0;
-    tco += e0 ? 20 * e0 + Mispredict : Mispredict;
-    tco += e1 ? 22 * e1 + Mispredict : Mispredict;
-    return tco;
+    unsigned cost = 0;
+    if (m >= 12) { // no e1, odd e0 in f
+	cost += Mispredict * 51/100 + f * 20;
+	if (e0 == 0)
+	    cost += Mispredict * 95/100; // no pctl
+	else {
+	    cost += Mispredict * 5/100 + 20; // pctl
+	    cost += Mispredict + e0 * 48; // patch e0
+	}
+	return cost;
+    }
+    if (m < 8) // a clobber entry, unlikely
+	cost += f ? Mispredict * 95/100 + 20 : Mispredict * 5/100;
+    if (e0 + e1 == 0)
+	cost += Mispredict * 97/100; // no pctl
+    else {
+	cost += Mispredict * 3/100 + 30; // pctl
+	cost += Mispredict + e0 * 48; // patch e0
+	cost += Mispredict + e1 * 20; // patch e1
+    }
+    return cost;
 }
 
 // Find the optimal parameters to encode a block of 64 integers, given
@@ -130,7 +164,7 @@ static unsigned rdopt64(const uint16_t h[32], struct bp *bp)
 	    f = e1, e1 = 0;
 	m--;
 	unsigned len = 1 + m * (64 / 8) + patch64len(m, e0, e1, f);
-	unsigned cost = BlockTax + simd64cost[m] + PatchTax + patch64cost(e0, e1, f);
+	unsigned cost = BlockTax + simd64cost[m] + patch64cost(m, e0, e1, f);
 	unsigned tco = LenRD * len + cost;
 	if (tco0 > tco) {
 	    tco0 = tco;
@@ -171,7 +205,7 @@ static unsigned rdopt128(const uint16_t h0[32], const uint16_t h1[32], struct bp
 	    f = e1, e1 = 0;
 	m--;
 	unsigned len = 1 + m * (128 / 8) + patch128len(m, e0, e1, f);
-	unsigned cost = BlockTax + simd128cost[m] + PatchTax + patch128cost(e0, e1, f);
+	unsigned cost = BlockTax + simd128cost[m] + patch128cost(m, e0, e1, f);
 	unsigned tco = LenRD * len + cost;
 	if (tco0 > tco) {
 	    tco0 = tco;
@@ -213,7 +247,7 @@ static unsigned rdopt256(const uint16_t h0[32], const uint16_t h1[32],
 	    f = e1, e1 = 0;
 	m--;
 	unsigned len = 1 + m * (256 / 8) + patch256len(m, e0, e1, f);
-	unsigned cost = BlockTax + simd256cost[m] + PatchTax + patch256cost(e0, e1, f);
+	unsigned cost = BlockTax + simd256cost[m] + patch256cost(m, e0, e1, f);
 	unsigned tco = LenRD * len + cost;
 	if (tco0 > tco) {
 	    tco0 = tco;
