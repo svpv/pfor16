@@ -1,8 +1,5 @@
-#include <assert.h>
+#include "platform.h"
 #include "bitunpack16.h"
-
-#define likely(x) __builtin_expect(!!(x), 1)
-#define unlikely(x) __builtin_expect(x, 0)
 
 #define Mask(k) ((1U<<(k))-1)
 
@@ -77,8 +74,7 @@ static inline const unsigned char *patch256(const unsigned char *src, uint16_t *
     return src;
 }
 
-__attribute__((flatten))
-const unsigned char *dec64(const unsigned char *src, size_t len, uint16_t *v, size_t n)
+static const uchar *dec64(const uchar *src, const uchar *srcEnd, uint16_t *v, size_t n)
 {
     uint16_t *last64 = v + n - 64;
     do {
@@ -225,4 +221,35 @@ const unsigned char *dec64(const unsigned char *src, size_t len, uint16_t *v, si
 	}
     } while (v <= last64);
     return src;
+}
+
+static const uchar *dec63(const uchar *src, const uchar *srcEnd, uint16_t *v, size_t n)
+{
+    memcpy(v, src, 2 * n);
+    return src + 2 * n;
+}
+
+__attribute__((flatten))
+size_t pfor16dec(const void *src0, size_t len, uint16_t *v, size_t n)
+{
+    const uchar *src = src0, *srcEnd = src0 + len;
+    if (n >= 64) {
+	src = dec64(src, srcEnd, v, n);
+	if (!src)
+	    return 0;
+	v += n & ~63;
+	n &= 63;
+    }
+    if (likely(n > 1)) {
+	src = dec63(src, srcEnd, v, n);
+	if (!src)
+	    return 0;
+    }
+    else if (n == 1) {
+	if (srcEnd - src < 2)
+	    return 0;
+	*v = load16le(src);
+	src += 2;
+    }
+    return src - (const uchar *) src0;
 }
