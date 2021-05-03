@@ -158,9 +158,9 @@ static unsigned rdopt64(const uint16_t h[32], struct bp *bp)
 	e1 += e0 & 1, e0 /= 2;
 	if (e0 > 15 || e1 > 15)
 	    break;
+	m--;
 	if (m >= 10)
 	    f = e1, e1 = 0;
-	m--;
 	unsigned len = 1 + m * (64 / 8) + patch64len(m, e0, e1, f);
 	unsigned cost = BlockTax + simd64cost[m] + patch64cost(m, e0, e1, f);
 	unsigned tco = LenRD * len + cost;
@@ -199,9 +199,9 @@ static unsigned rdopt128(const uint16_t h0[32], const uint16_t h1[32], struct bp
 	e1 += e0 & 1, e0 /= 2;
 	if (e0 > 15 || e1 > 15)
 	    break;
+	m--;
 	if (m >= 11)
 	    f = e1, e1 = 0;
-	m--;
 	unsigned len = 1 + m * (128 / 8) + patch128len(m, e0, e1, f);
 	unsigned cost = BlockTax + simd128cost[m] + patch128cost(m, e0, e1, f);
 	unsigned tco = LenRD * len + cost;
@@ -241,9 +241,9 @@ static unsigned rdopt256(const uint16_t h0[32], const uint16_t h1[32],
 	e1 += e0 & 1, e0 /= 2;
 	if (e0 > 23 || e1 > 31)
 	    break;
+	m--;
 	if (m >= 12)
 	    f = e1, e1 = 0;
-	m--;
 	unsigned len = 1 + m * (256 / 8) + patch256len(m, e0, e1, f);
 	unsigned cost = BlockTax + simd256cost[m] + patch256cost(m, e0, e1, f);
 	unsigned tco = LenRD * len + cost;
