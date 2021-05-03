@@ -1,6 +1,4 @@
-#include <stdint.h>
-#include <string.h>
-#include <assert.h>
+#include "enc.h"
 
 static inline unsigned log2i(unsigned x)
 {
@@ -519,20 +517,19 @@ static unsigned char *enc64(const uint16_t *v, unsigned char *out, struct tile *
 #include <stdlib.h>
 #define xmalloc malloc
 
-size_t pfor16enc64(uint16_t *v, size_t n, void *out)
+uchar *pfor16enc64(uint16_t *v, size_t n, uchar *out)
 {
-    unsigned char *oend;
     size_t nb = n / 64;
     if (n > (64<<10)) {
 	struct tile *tt = xmalloc(nb * sizeof(struct tile));
 	struct tile *t = enctile(v, n, tt);
-	oend = enc64(v, out, t, tt + nb);
+	out = enc64(v, out, t, tt + nb);
 	free(tt);
     }
     else {
 	struct tile tt[nb];
 	struct tile *t = enctile(v, n, tt);
-	oend = enc64(v, out, t, tt + nb);
+	out = enc64(v, out, t, tt + nb);
     }
-    return oend - (unsigned char *) out;
+    return out;
 }
