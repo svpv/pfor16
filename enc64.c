@@ -333,14 +333,14 @@ static unsigned ffind(const uint16_t *v, int m)
     }
 }
 
-static unsigned char *encpatch(const uint16_t *v, int nlog, int m, unsigned e0, unsigned e1, unsigned char *out)
+static uchar *encpatch(const uint16_t *v, int nlog, int m, unsigned fi, unsigned e0, unsigned e1, uchar *out)
 {
     unsigned char *s0 = out;
     unsigned char *s1 = out + e0 * 3;
     unsigned n0 = 0;
     uint32_t u24 = 0;
     for (unsigned i = 0; i < (1U << nlog); i++) {
-	if (v[i] < (1U << m) || v[i] >= (1U << (m + 16 - nlog)))
+	if (v[i] < (1U << m) || i == fi)
 	    continue;
 	if (v[i] >= (1U << (m + 12 - nlog))) {
 	    uint16_t w = i | v[i] >> m << nlog;
@@ -391,6 +391,7 @@ static unsigned char *enc64(const uint16_t *v, unsigned char *out, struct tile *
 	}
 	unsigned e0 = t->bp.e0, e1 = t->bp.e1;
 	unsigned fflag = t->bp.f, pflag = (e0 + e1) ? 1 : 0;
+	unsigned fi = -1;
 	switch (log2i(t->span) << 4 | t->bp.m) {
 #define CaseC1F3(C, M, N, SpanLog)				\
 	case SpanLog << 4 | M:					\
@@ -398,15 +399,15 @@ static unsigned char *enc64(const uint16_t *v, unsigned char *out, struct tile *
 	    bitpack16_##M##x##N(v, out);			\
 	    out += M * N / 8;					\
 	    if (fflag) {					\
-		unsigned i = ffind(v, M + 10 - SpanLog);	\
-		assert(i < N);					\
-		*out = i;					\
-		Bstore16le(out + 1, v[i]);			\
+		fi = ffind(v, M + 10 - SpanLog);		\
+		assert(fi < N);					\
+		*out = fi;					\
+		Bstore16le(out + 1, v[fi]);			\
 		out += 3;					\
 	    }							\
 	    if (pflag) {					\
 		*out++ = e0 | e1 << 4;				\
-		out = encpatch(v, 6 + SpanLog, M, e0, e1, out); \
+		out = encpatch(v, 6 + SpanLog, M, fi, e0, e1, out); \
 	    }							\
 	    v += N;						\
 	    break
@@ -417,7 +418,7 @@ static unsigned char *enc64(const uint16_t *v, unsigned char *out, struct tile *
 	    out += M * N / 8;					\
 	    if (pflag) {					\
 		*out++ = e0 | e1 << 4;				\
-		out = encpatch(v, 6 + SpanLog, M, e0, e1, out); \
+		out = encpatch(v, 6 + SpanLog, M, fi, e0, e1, out); \
 	    }							\
 	    v += N;						\
 	    break
@@ -427,15 +428,15 @@ static unsigned char *enc64(const uint16_t *v, unsigned char *out, struct tile *
 	    bitpack16_##M##x##N(v, out);			\
 	    out += M * N / 8;					\
 	    if (fflag) {					\
-		unsigned i = ffind(v, M + 10 - SpanLog);	\
-		assert(i < N);					\
-		*out = i;					\
-		Bstore16le(out + 1, v[i]);			\
-		out += 3;					\
+		fi = ffind(v, M);				\
+		assert(fi < N);					\
+		uint w = fi | v[fi] >> M << (6 + SpanLog);	\
+		Bstore16le(out, w);				\
+		out += 2;					\
 	    }							\
 	    if (pflag) {					\
 		*out++ = e0;					\
-		out = encpatch(v, 6 + SpanLog, M, e0, 0, out);	\
+		out = encpatch(v, 6 + SpanLog, M, fi, e0, 0, out); \
 	    }							\
 	    v += N;						\
 	    break
@@ -447,15 +448,15 @@ static unsigned char *enc64(const uint16_t *v, unsigned char *out, struct tile *
 	    bitpack16_##M##x##256(v, out);			\
 	    out += M * 256 / 8;					\
 	    if (fflag) {					\
-		unsigned i = ffind(v, M + 8);			\
-		assert(i < 256);				\
-		*out = i;					\
-		Bstore16le(out + 1, v[i]);			\
+		fi = ffind(v, M + 8);				\
+		assert(fi < 256);				\
+		*out = fi;					\
+		Bstore16le(out + 1, v[fi]);			\
 		out += 3;					\
 	    }							\
 	    if (pflag) {					\
 		*out++ = e0 << 5 | e1;				\
-		out = encpatch(v, 8, M, e0, e1, out);		\
+		out = encpatch(v, 8, M, fi, e0, e1, out);	\
 	    }							\
 	    v += 256;						\
 	    break
@@ -467,7 +468,7 @@ static unsigned char *enc64(const uint16_t *v, unsigned char *out, struct tile *
 	    out += M * 256 / 8;					\
 	    if (pflag) {					\
 		*out++ = e0 << 5 | e1;				\
-		out = encpatch(v, 8, M, e0, e1, out);		\
+		out = encpatch(v, 8, M, fi, e0, e1, out);	\
 	    }							\
 	    v += 256;						\
 	    break
@@ -477,15 +478,15 @@ static unsigned char *enc64(const uint16_t *v, unsigned char *out, struct tile *
 	    bitpack16_##M##x##256(v, out);			\
 	    out += M * 256 / 8;					\
 	    if (fflag) {					\
-		unsigned i = ffind(v, M + 8);			\
-		assert(i < 256);				\
-		*out = i;					\
-		Bstore16le(out + 1, v[i]);			\
+		fi = ffind(v, M);				\
+		assert(fi < 256);				\
+		out[0] = fi;					\
+		out[1] = v[fi] >> M;				\
 		out += 3;					\
 	    }							\
 	    if (pflag) {					\
 		*out++ = e0;					\
-		out = encpatch(v, 8, M, e0, 0, out);		\
+		out = encpatch(v, 8, M, fi, e0, 0, out);	\
 	    }							\
 	    v += 256;						\
 	    break
