@@ -32,3 +32,7 @@ size_t pfor16enc(uint16_t *v, size_t n, void *out);
 // in advance.  Returns the the number of bytes consumed from src (which
 // can be fewer than len), or 0 on error.
 size_t pfor16dec(const void *src, size_t len, uint16_t *v, size_t n);
+
+// Delta encode and decode an array in place.
+void delta16enc(uint16_t *v, size_t n);
+void delta16dec(uint16_t *v, size_t n);
