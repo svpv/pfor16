@@ -1,4 +1,5 @@
 #include "enc.h"
+#include "pfor16.h"
 
 size_t pfor16enc(uint16_t *v, size_t n, void *out0)
 {

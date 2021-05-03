@@ -1,5 +1,6 @@
 #include "platform.h"
 #include "bitunpack16.h"
+#include "pfor16.h"
 
 #define Mask(k) ((1U<<(k))-1)
 
