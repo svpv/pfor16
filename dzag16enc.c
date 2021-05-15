@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Alexey Tourbin
+// Copyright (c) 2020, 2021 Alexey Tourbin
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,19 +21,24 @@
 #include "pfor16.h"
 #include "platform.h"
 
-static void delta16enc_tail(uint16_t *v, size_t n, unsigned v1)
+static inline unsigned zag(unsigned x)
+{
+    return x << 1 ^ (int32_t) x >> 31;
+}
+
+static void dzag16enc_tail(uint16_t *v, size_t n, unsigned v1)
 {
     if (unlikely(n == 1))
 	goto last;
     unsigned v0;
     uint16_t *last = v + n - 1;
     do {
-	v0 = v[0], v[0] = v0 - v1;
-	v1 = v[1], v[1] = v1 - v0;
+	v0 = v[0], v[0] = zag(v0 - v1);
+	v1 = v[1], v[1] = zag(v1 - v0);
 	v += 2;
     } while (v < last);
     if (v == last) {
-last:	v0 = v[0], v[0] = v0 - v1;
+last:	v0 = v[0], v[0] = zag(v0 - v1);
     }
 }
 
@@ -45,16 +50,18 @@ last:	v0 = v[0], v[0] = v0 - v1;
 	__m128i xw, d;							\
 	xw = _mm_loadu_si128((void *)(v + 0));				\
 	d = _mm_sub_epi16(xw, _mm_alignr_epi8(xw, xv, 14));		\
+	d = _mm_xor_si128(_mm_slli_epi16(d, 1), _mm_srai_epi16(d, 15));	\
 	_mm_storeu_si128((void *)(v + 0), d);				\
 	xv = _mm_loadu_si128((void *)(v + 8));				\
 	d = _mm_sub_epi16(xv, _mm_alignr_epi8(xv, xw, 14));		\
+	d = _mm_xor_si128(_mm_slli_epi16(d, 1), _mm_srai_epi16(d, 15));	\
 	_mm_storeu_si128((void *)(v + 8), d);				\
     } while (0)
 
 #ifndef __SSSE3__
 __attribute__((target("ssse3")))
 #endif
-static void delta16enc_ssse3(uint16_t *v, size_t n)
+static void dzag16enc_ssse3(uint16_t *v, size_t n)
 {
     unsigned vx = 0;
     if (likely(n >= 16)) {
@@ -70,24 +77,24 @@ static void delta16enc_ssse3(uint16_t *v, size_t n)
 	    return;
 	vx = _mm_extract_epi16(xv, 7);
     }
-    delta16enc_tail(v, n, vx);
+    dzag16enc_tail(v, n, vx);
 }
 
-static void delta16enc_scalar(uint16_t *v, size_t n)
+static void dzag16enc_scalar(uint16_t *v, size_t n)
 {
-    delta16enc_tail(v, n, 0);
+    dzag16enc_tail(v, n, 0);
 }
 
-static void *delta16enc_ifunc()
+static void *dzag16enc_ifunc()
 {
     __builtin_cpu_init();
     // Slow palignr on Bobcat.
     if (__builtin_cpu_supports("ssse3") && !__builtin_cpu_is("btver1"))
-	return delta16enc_ssse3;
-    return delta16enc_scalar;
+	return dzag16enc_ssse3;
+    return dzag16enc_scalar;
 }
 
-void delta16enc(uint16_t *v, size_t n) __attribute__((ifunc("delta16enc_ifunc")));
+void dzag16enc(uint16_t *v, size_t n) __attribute__((ifunc("dzag16enc_ifunc")));
 
 #elif defined(__ARM_NEON) || defined(__aarch64__)
 #include <arm_neon.h>
@@ -103,7 +110,7 @@ void delta16enc(uint16_t *v, size_t n) __attribute__((ifunc("delta16enc_ifunc"))
 	vst1q_u16(v + 8, d);						\
     } while (0)
 
-void delta16enc(uint16_t *v, size_t n)
+void dzag16enc(uint16_t *v, size_t n)
 {
     unsigned vx = 0;
     if (likely(n >= 16)) {
@@ -119,14 +126,14 @@ void delta16enc(uint16_t *v, size_t n)
 	    return;
 	vx = xv[7];
     }
-    delta16enc_tail(v, n, vx);
+    dzag16enc_tail(v, n, vx);
 }
 
 #else
 
-void delta16enc(uint16_t *v, size_t n)
+void dzag16enc(uint16_t *v, size_t n)
 {
-    delta16enc_tail(v, n, 0);
+    dzag16enc_tail(v, n, 0);
 }
 
 #endif

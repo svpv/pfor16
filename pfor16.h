@@ -36,3 +36,7 @@ size_t pfor16dec(const void *src, size_t len, uint16_t *v, size_t n);
 // Delta encode and decode an array in place.
 void delta16enc(uint16_t *v, size_t n);
 void delta16dec(uint16_t *v, size_t n);
+
+// Delta + zigzag, for unsorted lists.
+void dzag16enc(uint16_t *v, size_t n);
+void dzag16dec(uint16_t *v, size_t n);

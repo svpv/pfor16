@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Alexey Tourbin
+// Copyright (c) 2020, 2021 Alexey Tourbin
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,19 +21,24 @@
 #include "pfor16.h"
 #include "platform.h"
 
-static void delta16dec_tail(uint16_t *v, size_t n, unsigned v1)
+static inline unsigned zag(unsigned x)
+{
+    return x >> 1 ^ -(x & 1);
+}
+
+static void dzag16dec_tail(uint16_t *v, size_t n, unsigned v1)
 {
     if (unlikely(n == 1))
 	goto last;
     unsigned v0;
     uint16_t *last = v + n - 1;
     do {
-	v0 = v[0], v0 += v1, v[0] = v0;
-	v1 = v[1], v1 += v0, v[1] = v1;
+	v0 = zag(v[0]), v0 += v1, v[0] = v0;
+	v1 = zag(v[1]), v1 += v0, v[1] = v1;
 	v += 2;
     } while (v < last);
     if (v == last) {
-last:	v0 = v[0], v0 += v1, v[0] = v0;
+last:	v0 = zag(v[0]), v0 += v1, v[0] = v0;
     }
 }
 
@@ -45,6 +50,10 @@ last:	v0 = v[0], v0 += v1, v[0] = v0;
 	__m128i x0 = _mm_loadu_si128((void *)(v + 0));			\
 	__m128i x1 = _mm_loadu_si128((void *)(v + 8));			\
 	xv = _mm_shuffle_epi8(xv, _mm_set1_epi16(0x0f0e));		\
+	x0 = _mm_xor_si128(_mm_srli_epi16(x0, 1),			\
+		_mm_srai_epi16(_mm_slli_epi16(x0, 15), 15));		\
+	x1 = _mm_xor_si128(_mm_srli_epi16(x1, 1),			\
+		_mm_srai_epi16(_mm_slli_epi16(x1, 15), 15));		\
 	x0 = _mm_add_epi16(x0, _mm_slli_si128(x0, 2));			\
 	x1 = _mm_add_epi16(x1, _mm_slli_si128(x1, 2));			\
 	x0 = _mm_add_epi16(x0, _mm_slli_si128(x0, 4));			\
@@ -63,6 +72,10 @@ last:	v0 = v[0], v0 += v1, v[0] = v0;
 	__m256i y0 = _mm256_loadu_si256((void *)(v + 0));		\
 	__m256i y1 = _mm256_loadu_si256((void *)(v + 16));		\
 	xv = _mm_shuffle_epi8(xv, _mm_set1_epi16(0x0f0e));		\
+	y0 = _mm256_xor_si256(_mm256_srli_epi16(y0, 1),			\
+		_mm256_srai_epi16(_mm256_slli_epi16(y0, 15), 15));	\
+	y1 = _mm256_xor_si256(_mm256_srli_epi16(y1, 1),			\
+		_mm256_srai_epi16(_mm256_slli_epi16(y1, 15), 15));	\
 	y0 = _mm256_add_epi16(y0, _mm256_slli_si256(y0, 2));		\
 	y1 = _mm256_add_epi16(y1, _mm256_slli_si256(y1, 2));		\
 	y0 = _mm256_add_epi16(y0, _mm256_slli_si256(y0, 4));		\
@@ -85,7 +98,7 @@ last:	v0 = v[0], v0 += v1, v[0] = v0;
 #ifndef __SSSE3__
 __attribute__((target("ssse3")))
 #endif
-static void delta16dec_ssse3(uint16_t *v, size_t n)
+static void dzag16dec_ssse3(uint16_t *v, size_t n)
 {
     unsigned vx = 0;
     if (likely(n >= 16)) {
@@ -101,13 +114,13 @@ static void delta16dec_ssse3(uint16_t *v, size_t n)
 	    return;
 	vx = _mm_extract_epi16(xv, 7);
     }
-    delta16dec_tail(v, n, vx);
+    dzag16dec_tail(v, n, vx);
 }
 
 #ifndef __AVX2__
 __attribute__((target("avx2")))
 #endif
-static void delta16dec_avx2(uint16_t *v, size_t n)
+static void dzag16dec_avx2(uint16_t *v, size_t n)
 {
     unsigned vx = 0;
     if (likely(n >= 16)) {
@@ -136,33 +149,33 @@ static void delta16dec_avx2(uint16_t *v, size_t n)
 	    return;
 	vx = _mm_extract_epi16(xv, 7);
     }
-    delta16dec_tail(v, n, vx);
+    dzag16dec_tail(v, n, vx);
 }
 
 #ifndef __SSSE3__
-static void delta16dec_scalar(uint16_t *v, size_t n)
+static void dzag16dec_scalar(uint16_t *v, size_t n)
 {
-    delta16dec_tail(v, n, 0);
+    dzag16dec_tail(v, n, 0);
 }
 #endif
 
-static void *delta16dec_ifunc()
+static void *dzag16dec_ifunc()
 {
     __builtin_cpu_init();
     if (__builtin_cpu_supports("avx2")) {
 	// Slow AVX loads on Excavator, slow vzeroupper on KNL.
 	if (__builtin_cpu_is("bdver4") || __builtin_cpu_supports("avx512er"))
-	    return delta16dec_ssse3;
-	return delta16dec_avx2;
+	    return dzag16dec_ssse3;
+	return dzag16dec_avx2;
     }
 #ifndef __SSSE3__
     if (!__builtin_cpu_supports("ssse3"))
-	return delta16dec_scalar;
+	return dzag16dec_scalar;
 #endif
-    return delta16dec_ssse3;
+    return dzag16dec_ssse3;
 }
 
-void delta16dec(uint16_t *v, size_t n) __attribute__((ifunc("delta16dec_ifunc")));
+void dzag16dec(uint16_t *v, size_t n) __attribute__((ifunc("dzag16dec_ifunc")));
 
 #elif defined(__ARM_NEON) || defined(__aarch64__)
 #include <arm_neon.h>
@@ -189,7 +202,7 @@ void delta16dec(uint16_t *v, size_t n) __attribute__((ifunc("delta16dec_ifunc"))
 	vst1q_u16(v + 8, xv);						\
     } while (0)
 
-void delta16dec(uint16_t *v, size_t n)
+void dzag16dec(uint16_t *v, size_t n)
 {
     unsigned vx = 0;
     if (likely(n >= 16)) {
@@ -205,14 +218,14 @@ void delta16dec(uint16_t *v, size_t n)
 	    return;
 	vx = xv[7];
     }
-    delta16dec_tail(v, n, vx);
+    dzag16dec_tail(v, n, vx);
 }
 
 #else
 
-void delta16dec(uint16_t *v, size_t n)
+void dzag16dec(uint16_t *v, size_t n)
 {
-    delta16dec_tail(v, n, 0);
+    dzag16dec_tail(v, n, 0);
 }
 
 #endif
