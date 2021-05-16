@@ -187,6 +187,12 @@ void dzag16dec(uint16_t *v, size_t n) __attribute__((ifunc("dzag16dec_ifunc")));
 	xv = vreinterpretq_u16_u8(vqtbl1q_u8(				\
 		vreinterpretq_u8_u16(xv),				\
 		vreinterpretq_u8_u16(vdupq_n_u16(0x0f0e))));		\
+	x0 = veorq_u16(vshrq_n_u16(x0, 1),				\
+vreinterpretq_u16_s16(vshrq_n_s16(vreinterpretq_s16_u16(		\
+		vshlq_n_u16(x0, 15)), 15)));				\
+	x1 = veorq_u16(vshrq_n_u16(x1, 1),				\
+vreinterpretq_u16_s16(vshrq_n_s16(vreinterpretq_s16_u16(		\
+		vshlq_n_u16(x1, 15)), 15)));				\
 	x0 = vaddq_u16(x0, vextq_u16(vdupq_n_u16(0), x0, 8-1));		\
 	x1 = vaddq_u16(x1, vextq_u16(vdupq_n_u16(0), x1, 8-1));		\
 	x0 = vaddq_u16(x0, vextq_u16(vdupq_n_u16(0), x0, 8-2));		\

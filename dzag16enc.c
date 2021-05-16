@@ -104,9 +104,13 @@ void dzag16enc(uint16_t *v, size_t n) __attribute__((ifunc("dzag16enc_ifunc")));
 	uint16x8_t xw, d;						\
 	xw = vld1q_u16(v + 0);						\
 	d = vsubq_u16(xw, vextq_u16(xv, xw, 7));			\
+	d = veorq_u16(vshlq_n_u16(d, 1),				\
+vreinterpretq_u16_s16(vshrq_n_s16(vreinterpretq_s16_u16(d), 15)));	\
 	vst1q_u16(v + 0, d);						\
 	xv = vld1q_u16(v + 8);						\
 	d = vsubq_u16(xv, vextq_u16(xw, xv, 7));			\
+	d = veorq_u16(vshlq_n_u16(d, 1),				\
+vreinterpretq_u16_s16(vshrq_n_s16(vreinterpretq_s16_u16(d), 15)));	\
 	vst1q_u16(v + 8, d);						\
     } while (0)
 

@@ -94,26 +94,28 @@ void dmask16enc(uint16_t *v, size_t n, int mbits) __attribute__((ifunc("dmask16e
 #elif defined(__ARM_NEON) || defined(__aarch64__)
 #include <arm_neon.h>
 
-#define XMM2ITER(v, xv)							\
+#define XMM2ITER(v, xv, xmask)						\
     do {								\
 	uint16x8_t xw, d;						\
 	xw = vld1q_u16(v + 0);						\
 	d = vsubq_u16(xw, vextq_u16(xv, xw, 7));			\
-	vst1q_u16(v + 0, d);						\
+	vst1q_u16(v + 0, vandq_u16(d, xmask));				\
 	xv = vld1q_u16(v + 8);						\
 	d = vsubq_u16(xv, vextq_u16(xw, xv, 7));			\
-	vst1q_u16(v + 8, d);						\
+	vst1q_u16(v + 8, vandq_u16(d, xmask));				\
     } while (0)
 
-void dmask16enc(uint16_t *v, size_t n)
+void dmask16enc(uint16_t *v, size_t n, int mbits)
 {
     uint vx = 0;
+    uint mask = (1U << mbits) - 1;
     if (likely(n >= 16)) {
 	uint16x8_t xv = vdupq_n_u16(vx);
+	uint16x8_t xmask = vdupq_n_u16(mask);
 	uint16_t *vend = v + n;
 	uint16_t *last16 = vend - 16;
 	do {
-	    XMM2ITER(v, xv);
+	    XMM2ITER(v, xv, xmask);
 	    v += 16;
 	} while (v <= last16);
 	n = vend - v;
@@ -121,7 +123,7 @@ void dmask16enc(uint16_t *v, size_t n)
 	    return;
 	vx = xv[7];
     }
-    dmask16enc_tail(v, n, vx);
+    dmask16enc_tail(v, n, vx, mask);
 }
 
 #else
