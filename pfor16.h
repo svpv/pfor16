@@ -40,3 +40,7 @@ void delta16dec(uint16_t *v, size_t n);
 // Delta + zigzag, for unsorted lists.
 void dzag16enc(uint16_t *v, size_t n);
 void dzag16dec(uint16_t *v, size_t n);
+
+// Delta + mask, for limited range with rare negative deltas.
+void dmask16enc(uint16_t *v, size_t n, int mbits);
+void dmask16dec(uint16_t *v, size_t n, int mbits);
