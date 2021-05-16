@@ -21,16 +21,16 @@
 #include "pfor16.h"
 #include "platform.h"
 
-static inline unsigned zag(unsigned x)
+static inline uint zag(uint x)
 {
     return x >> 1 ^ -(x & 1);
 }
 
-static void dzag16dec_tail(uint16_t *v, size_t n, unsigned v1)
+static void dzag16dec_tail(uint16_t *v, size_t n, uint v1)
 {
     if (unlikely(n == 1))
 	goto last;
-    unsigned v0;
+    uint v0;
     uint16_t *last = v + n - 1;
     do {
 	v0 = zag(v[0]), v0 += v1, v[0] = v0;
@@ -100,7 +100,7 @@ __attribute__((target("ssse3")))
 #endif
 static void dzag16dec_ssse3(uint16_t *v, size_t n)
 {
-    unsigned vx = 0;
+    uint vx = 0;
     if (likely(n >= 16)) {
 	__m128i xv = _mm_set1_epi32(vx);
 	uint16_t *vend = v + n;
@@ -122,7 +122,7 @@ __attribute__((target("avx2")))
 #endif
 static void dzag16dec_avx2(uint16_t *v, size_t n)
 {
-    unsigned vx = 0;
+    uint vx = 0;
     if (likely(n >= 16)) {
 	__m128i xv = _mm_set1_epi32(vx);
 	uint16_t *vend = v + n;
@@ -204,7 +204,7 @@ void dzag16dec(uint16_t *v, size_t n) __attribute__((ifunc("dzag16dec_ifunc")));
 
 void dzag16dec(uint16_t *v, size_t n)
 {
-    unsigned vx = 0;
+    uint vx = 0;
     if (likely(n >= 16)) {
 	uint16x8_t xv = vdupq_n_u16(vx);
 	uint16_t *vend = v + n;
