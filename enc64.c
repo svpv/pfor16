@@ -482,7 +482,7 @@ static unsigned char *enc64(const uint16_t *v, unsigned char *out, struct tile *
 		assert(fi < 256);				\
 		out[0] = fi;					\
 		out[1] = v[fi] >> M;				\
-		out += 3;					\
+		out += 2;					\
 	    }							\
 	    if (pflag) {					\
 		*out++ = e0;					\
